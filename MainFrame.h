@@ -14,16 +14,18 @@ using namespace std;
 #define IDC_SLH_ZOOM 300
 #define IDC_SLH_SPEED 301
 
+//Vi var tvungen att använda static för att kollisions callback funktionen skulle kunna komma 
+//åt variablerna
 static Physics *engine;
 static Player p1;
 static Player p2;
-static int winner;
 static bool start;
 static vector<Animation> animations;
 static __int64 scale;
 
 class CMainFrame: public CFrameWnd {
 private:
+	int winner;
 	CMenu menu;
 	CSliderCtrl zoom, speed;
 	vector<Object*> *objects;
@@ -63,7 +65,6 @@ public:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CWnd *pSlider);
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CWnd *pSlider);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
-	afx_msg void OnSize();
 	
 	DECLARE_MESSAGE_MAP();
 };

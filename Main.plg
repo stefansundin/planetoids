@@ -6,6 +6,31 @@
 --------------------Configuration: Main - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\ky89piho\LOKALA~1\Temp\RSP1E4.tmp" with contents
+[
+/nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "_AFXDLL" /Fp"Release/Main.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
+"D:\Prog C\MFC\Spel\Planetoids\MainFrame.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\ky89piho\LOKALA~1\Temp\RSP1E4.tmp" 
+Creating temporary file "C:\DOCUME~1\ky89piho\LOKALA~1\Temp\RSP1E5.tmp" with contents
+[
+resources.res /nologo /subsystem:windows /incremental:yes /pdb:"Release/Planetoids.pdb" /machine:I386 /out:"Release/Planetoids.exe" 
+".\Release\Animation.obj"
+".\Release\Main.obj"
+".\Release\MainFrame.obj"
+".\Release\MyWinApp.obj"
+".\Release\Object.obj"
+".\Release\ObjectX.obj"
+".\Release\Physics.obj"
+".\Release\Player.obj"
+".\Release\Vector.obj"
+"C:\Program\Microsoft Visual Studio\VC98\Lib\WINMM.LIB"
+]
+Creating command line "link.exe @C:\DOCUME~1\ky89piho\LOKALA~1\Temp\RSP1E5.tmp"
+<h3>Output Window</h3>
+Compiling...
+MainFrame.cpp
+Linking...
 
 
 

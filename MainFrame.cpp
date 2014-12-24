@@ -4,7 +4,8 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
-#include "memdc.h"
+#include <windows.h>
+#include <mmsystem.h>
 #include "fysik/ObjectX.h"
 
 const double pi=3.14159265358979323846;
@@ -20,7 +21,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_VSCROLL()
 	ON_WM_HSCROLL()
 	ON_WM_MOUSEWHEEL()
-//	ON_WM_SIZE()
 	ON_COMMAND(IDM_MENU_RESET,OnMenuReset)
 	ON_COMMAND(IDM_MENU_OPEN,OnMenuOpen)
 	ON_COMMAND(IDM_MENU_ADD,OnMenuAdd)
@@ -96,16 +96,23 @@ void CMainFrame::collide(Object* obj1, Object* obj2) {
 		ss << damage;
 		animations.push_back(Animation(missile->getPosition(),"Damage",ss.str()));
 		planet->SetHP(planet->GetHP()-damage);
-		if (planet->GetHP() <= 0) {
+		if (planet->GetHP() <= 0 && planet->getName() != "Meteor") {
 			if (planet->getName() == "Sun") {
 				animations.push_back(Animation(missile->getPosition(),"Supernova"));
+				PlaySound("Supernova.wav", NULL, SND_FILENAME | SND_ASYNC);
 			}
-			else {
+			else{
 				animations.push_back(Animation(missile->getPosition(),"Megasplosion"));
+				PlaySound("Planet.wav", NULL, SND_FILENAME | SND_ASYNC);
 			}
 		}
 		else {
 			animations.push_back(Animation(missile->getPosition(),"Explosion"));
+			stringstream bomb;
+			bomb << "bomb-0";
+			bomb << (2+rand()%4);
+			bomb << ".wav";
+			PlaySound(bomb.str().c_str(), NULL, SND_FILENAME | SND_ASYNC);
 		}
 	}
 	
@@ -137,32 +144,14 @@ void CMainFrame::collide(Object* obj1, Object* obj2) {
 			engine->removeObject(planet);
 		}
 		engine->removeObject(missile);
-		/*planet->updateRadius(planet->getRadius()*0.8);
-		if (planet->getRadius()/scale <= 2) {
-			engine->removeObject(planet);
-		}*/
-		//planet->updateMass(planet->getMass()*0.9);
 	}
 	else if (name1 == "Blackhole" || name2 == "Blackhole") {
 		ObjectX *blackhole=(ObjectX*)(name1=="Blackhole"?obj1:obj2);
 		ObjectX *planet=(ObjectX*)(blackhole==obj1?obj2:obj1);
-		//animations.push_back(Animation(planet->getPosition(),"Explosion"));
 		blackhole->updateRadius(blackhole->getRadius()+0.5*planet->getRadius());
 		blackhole->updateMass(blackhole->getMass()+0.5*planet->getMass());
 		engine->removeObject(planet);
 	}
-	/*else {
-		double newRadius=(obj1->getRadius()+obj2->getRadius())/2;
-		obj1->updateRadius(newRadius);
-		obj2->updateRadius(newRadius);
-	}*/
-	/*else {
-		Vector vel1=obj1->getVelocity();
-		Vector vel2=obj2->getVelocity();
-		obj1->setVelocity(vel2);
-		obj2->setVelocity(vel1);
-	}*/
-
 }
 
 void CMainFrame::OnMenuReset() {
@@ -229,8 +218,9 @@ void CMainFrame::LoadSystem(string fn) {
 		speed.SetPos(timestep);
 		float pos,vel,rad,m;
 		unsigned char r,g,b;
+		int h;
 		char name[100];
-		while (fscanf(f,"%f\t%f\t%f\t%f\t%s\t%d,%d,%d",&pos,&vel,&rad,&m,name,&r,&g,&b) != EOF) {
+		while (fscanf(f,"%f\t%f\t%f\t%f\t%s\t%d,%d,%d\t%d",&pos,&vel,&rad,&m,name,&r,&g,&b,&h) != EOF) {
 			for (char *c=name; *c != '\0'; c++) {
 				if (*c == '_') {
 					*c=' ';
@@ -242,11 +232,8 @@ void CMainFrame::LoadSystem(string fn) {
 			y=pos*sin(angle*pi/180);
 			velx=vel*cos((90+angle)*pi/180);
 			vely=vel*sin((90+angle)*pi/180);
-			ObjectX *newobject=new ObjectX(Vector(x,y), Vector(velx,vely), rad, m, name, r,g,b);
+			ObjectX *newobject=new ObjectX(Vector(x,y), Vector(velx,vely), rad, m, name, r,g,b,h);
 			engine->addObject(newobject);
-			if(name=="Sun"){
-				newobject->SetHP(10000);
-			}
 		}
 		fclose(f);
 		file=fn;
@@ -273,19 +260,13 @@ void CMainFrame::SaveSystem(string fn) {
 			float position,velocity;
 			position=sqrt(pow(pos.getX(),2)+pow(pos.getY(),2));
 			velocity=sqrt(pow(vel.getX(),2)+pow(vel.getY(),2));
-			fprintf(file,"%f\t%f\t%f\t%f\t%s\t%d,%d,%d\n",position,velocity,p->getRadius(),p->getMass(),name,p->getColorR(),p->getColorG(),p->getColorB());
+			fprintf(file,"%f\t%f\t%f\t%f\t%s\t%d,%d,%d\t%d\n",position,velocity,p->getRadius(),p->getMass(),name,p->getColorR(),p->getColorG(),p->getColorB(),p->GetHP());
 		}
 		fclose(file);
 	}
 }
 
 void CMainFrame::OnPaint() {
-	//Flicker free DC
-/*	CPaintDC loldc(this);
-	CRect rect;
-	GetClientRect(rect);
-	CMemDC dc(&loldc,&rect);
-*/
 	CPaintDC dc(this);
 
 	dc.SetTextAlign(TA_CENTER);
@@ -435,7 +416,7 @@ void CMainFrame::OnPaint() {
 			CBrush brush;
 			CRect planetrect(middle_x+planet_x-radius,middle_y+planet_y-radius,
 				middle_x+planet_x+radius,middle_y+planet_y+radius);
-			if (!start && name != "Blackhole" && name != "Sun" && p1.GetPlanet() != planet && p2.GetPlanet() != planet && planetrect.PtInRect(MousePos)) {
+			if (!start && name != "Blackhole" && name != "Sun" && name != "Meteor" && p1.GetPlanet() != planet && p2.GetPlanet() != planet && planetrect.PtInRect(MousePos)) {
 				brush.CreateSolidBrush(RGB(255,0,0));
 			}
 			else {
@@ -533,7 +514,7 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 		for(int o=0; o < objects->size(); o++){
 			ObjectX *missile=(ObjectX*)objects->at(o);
 			if(missile->getName() == "Missile"){
-				if(missile->getTime() > 10000002000){
+				if(missile->getTime() > 1000000000){
 					animations.push_back(Animation(missile->getPosition(),"Explosion"));
 					engine->removeObject(missile);
 				}
@@ -576,35 +557,6 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 			scale=stdscale;
 			zoom.SetPos(scale);
 		}
-		/*if (keys['Z']) {
-			scale++;
-			zoom.SetPos(scale);
-		}
-		if (keys['X']) {
-			if (scale != 1) {
-				scale--;
-				zoom.SetPos(scale);
-			}
-		}
-		if (keys['C']) {
-			scale+=1000;
-			zoom.SetPos(scale);
-		}
-		if (keys['V']) {
-			scale=(scale-1000<1?1:scale-1000);
-			zoom.SetPos(scale);
-		}
-		if (keys['B']) {
-			scale+=50000;
-			zoom.SetPos(scale);
-		}
-		if (keys['N']) {
-			scale=(scale-50000<1?1:scale-50000);
-			zoom.SetPos(scale);
-		}*/
-		/*if (keys['X']) {
-			animations.push_back(Animation(Vector(0,0),"Explosion"));
-		}*/
 		if (keys[' ']) {
 			nuke++;
 			if (nuke == 3) {
@@ -744,11 +696,6 @@ void CMainFrame::OnKeyDown(UINT nChar, UINT nRep, UINT nFlags)  {
 	if (winner && nChar == 13) {
 		OnMenuReset();
 	}
-/*
-	char text[100];
-	sprintf(text,"nChar: %d", nChar);
-	MessageBox(text,"char");
-*/
 }
 
 void CMainFrame::OnKeyUp(UINT nChar, UINT nRep, UINT nFlags)  {
@@ -773,7 +720,7 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 		for (int i=0; i < objects->size(); i++) {
 			ObjectX *planet=(ObjectX*)objects->at(i);
 			string name=planet->getName();
-			if (name != "Sun" && name != "Blackhole") {
+			if (name != "Sun" && name != "Blackhole" && name != "Meteor") {
 				int planet_x=planet->getPosition().getX()/scale;
 				int planet_y=-planet->getPosition().getY()/scale;
 				int radius=planet->getRadius()/scale;
@@ -829,7 +776,6 @@ void CMainFrame::OnVScroll(UINT nSBCode, UINT nPos, CWnd *pSlider) {
 	CSliderCtrl *pSld;
 	pSld=(CSliderCtrl*)pSlider;
 	scale=pSld->GetPos();
-	//scale=(scale==1?1:scale);
 	this->SetFocus();
 }
 
@@ -850,12 +796,4 @@ BOOL CMainFrame::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) {
 	}
 	zoom.SetPos(scale);
 	return 1;
-}
-
-void CMainFrame::OnSize() {
-/*
-	CRect window;
-	GetClientRect(&window);
-	zoom.GetBuddy()->SetWindowPos(&wndTop,200,200,200,200,SWP_SHOWWINDOW);
-*/
 }

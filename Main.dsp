@@ -160,5 +160,9 @@ SOURCE=.\fysik\Vector.cpp
 
 SOURCE=.\fysik\Vector.h
 # End Source File
+# Begin Source File
+
+SOURCE="C:\Program\Microsoft Visual Studio\VC98\Lib\WINMM.LIB"
+# End Source File
 # End Target
 # End Project
