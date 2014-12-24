@@ -15,6 +15,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_RBUTTONDOWN()
 	ON_WM_VSCROLL()
+	ON_WM_HSCROLL()
 	ON_WM_MOUSEWHEEL()
 	ON_WM_SIZE()
 	ON_COMMAND(IDM_MENU_RESET,OnMenuReset)
@@ -22,6 +23,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(IDM_MENU_ADD,OnMenuAdd)
 	ON_COMMAND(IDM_MENU_SAVE,OnMenuSave)
 	ON_COMMAND(IDM_MENU_BLACKHOLE,OnMenuBlackhole)
+	ON_COMMAND(IDM_MENU_INVALIDATE,OnMenuInvalidate)
 END_MESSAGE_MAP()
 
 CMainFrame::CMainFrame() {
@@ -29,12 +31,17 @@ CMainFrame::CMainFrame() {
 
 	memset(keys,0,sizeof(keys));
 	start=false;
+	winner=0;
+	invalidate=true;
 	follow=NULL;
 	stdscale=scale=1;
+	timestep=8000;
+	file="system.txt";
 	MousePos=CPoint(0,0);
 
-	p1.SetEngine(&engine);
-	p2.SetEngine(&engine);
+	engine = new Physics(&CMainFrame::collide);
+	p1.SetEngine(engine);
+	p2.SetEngine(engine);
 
 	Create(NULL,"Planetoids",WS_OVERLAPPEDWINDOW,CRect(20,20,900,700));
 	menu.LoadMenu(IDR_MENU);
@@ -50,12 +57,19 @@ CMainFrame::CMainFrame() {
 	zoom.Create(WS_CHILD |WS_VISIBLE |TBS_VERT |TBS_RIGHT,
 		CRect(CPoint(0,0),CSize(30,window.bottom)),
 		this, IDC_SLH_ZOOM);
-	zoom.SetRange(1,1520977000);	zoom.SetTicFreq(1);
+	zoom.SetRange(1,152097700);	zoom.SetTicFreq(1);
 	zoom.SetPos(0);
 	zoom.SetLineSize(1);	zoom.SetPageSize(50);
 
-	LoadSystem("system.txt");
-	objects = engine.getObjectsPointer();
+	speed.Create(WS_CHILD |WS_VISIBLE |TBS_HORZ |TBS_RIGHT,
+		CRect(CPoint(30,0),CSize(200,30)),
+		this, IDC_SLH_SPEED);
+	speed.SetRange(1,1000000);	speed.SetTicFreq(500);
+	speed.SetPos(timestep);
+	speed.SetLineSize(1);	speed.SetPageSize(50);
+
+	LoadSystem(file);
+	objects = engine->getObjectsPointer();
 
 	SetTimer(UPDATE_TIMER, 54, NULL);
 	SetTimer(DRAW_TIMER, 100, NULL);
@@ -63,12 +77,59 @@ CMainFrame::CMainFrame() {
 
 CMainFrame::~CMainFrame() {
 	KillTimer(UPDATE_TIMER);
-	KillTimer(DRAW_TIMER);
+}
+
+void CMainFrame::collide(Object* obj1, Object* obj2) {
+	string name1=obj1->getName();
+	string name2=obj2->getName();
+	
+	if (name1 == "Missile" && name2 == "Missile") {
+		engine->removeObject(obj1);
+		engine->removeObject(obj2);
+	}
+	else if ((name1 == "Missile" && (name2 == "Sun" || name2 == "Blackhole"))
+		  || (name2 == "Missile" && (name1 == "Sun" || name1 == "Blackhole"))) {
+		Object *missile=(name1=="Missile"?obj1:obj2);
+		engine->removeObject(missile);
+	}
+	else if ((name1 == "Missile" && (obj2 == p1.GetPlanet() || obj2 == p2.GetPlanet()))
+	      || (name2 == "Missile" && (obj1 == p1.GetPlanet() || obj1 == p2.GetPlanet()))) {
+		Object *missile=(name1=="Missile"?obj1:obj2);
+		Object *player=(missile==obj1?obj2:obj1);
+		winner=(player == p1.GetPlanet()?2:1);
+		start=false;
+	}
+	else if (name1 == "Missile" || name2 == "Missile") {
+		Object *missile=(name1=="Missile"?obj1:obj2);
+		Object *planet=(missile==obj1?obj2:obj1);
+		engine->removeObject(missile);
+		planet->updateRadius(planet->getRadius()*0.9);
+		//planet->updateMass(planet->getMass()*0.9);
+	}
+	else if (name1 == "Blackhole" || name2 == "Blackhole") {
+		Object *blackhole=(name1=="Blackhole"?obj1:obj2);
+		Object *planet=(blackhole==obj1?obj2:obj1);
+		blackhole->updateRadius(blackhole->getRadius()+0.5*planet->getRadius());
+		blackhole->updateMass(blackhole->getMass()+0.5*planet->getMass());
+		engine->removeObject(planet);
+	}
+	/*else {
+		double newRadius=(obj1->getRadius()+obj2->getRadius())/2;
+		obj1->updateRadius(newRadius);
+		obj2->updateRadius(newRadius);
+	}*/
+	/*else {
+		Vector vel1=obj1->getVelocity();
+		Vector vel2=obj2->getVelocity();
+		obj1->setVelocity(vel2);
+		obj2->setVelocity(vel1);
+	}*/
+
 }
 
 void CMainFrame::OnMenuReset() {
-	engine.clear();
-	LoadSystem("system.txt");
+	engine->clear();
+	LoadSystem(file);
 	follow=NULL;
 	adjustview=Vector(0,0);
 }
@@ -79,7 +140,7 @@ void CMainFrame::OnMenuOpen() {
 	{
 		char file[255];
 		strcpy(file, FileDlg.GetFileName());
-		engine.clear();
+		engine->clear();
 		LoadSystem(file);
 	}
 }
@@ -88,9 +149,9 @@ void CMainFrame::OnMenuAdd() {
 	CFileDialog FileDlg(TRUE, ".txt", NULL, 0, "Planetoid Systems (*.txt)|*.txt|All Files (*.*)|*.*||");
 	if( FileDlg.DoModal() == IDOK )
 	{
-		char file[255];
-		strcpy(file, FileDlg.GetFileName());
-		LoadSystem(file);
+		char fn[255];
+		strcpy(fn, FileDlg.GetFileName());
+		LoadSystem(fn);
 	}
 }
 
@@ -105,18 +166,24 @@ void CMainFrame::OnMenuSave() {
 }
 
 void CMainFrame::OnMenuBlackhole() {
-	engine.addObject(new Object(Vector(650e6*cos(rand()%360*pi/180),650e6*sin(rand()%360*pi/180)), Vector(-3,-3), 33e6, 5e28, "Blackhole"));
+	engine->addObject(new Object(Vector(650e6*cos(rand()%360*pi/180),650e6*sin(rand()%360*pi/180)), Vector(-3,-3), 33e6, 5e28, "Blackhole"));
+}
+
+void CMainFrame::OnMenuInvalidate() {
+	invalidate=!invalidate;
+	Invalidate(TRUE);
 }
 
 void CMainFrame::LoadSystem(string fn) {
-	FILE *file;
-	if ((file=fopen(fn.c_str(),"rb")) != NULL) {
-		fscanf(file,"%d",&scale);
+	FILE *f;
+	if ((f=fopen(fn.c_str(),"rb")) != NULL) {
+		fscanf(f,"%d\t%d",&scale,&timestep);
 		stdscale=scale;
 		zoom.SetPos(scale);
+		speed.SetPos(timestep);
 		float pos,vel,r,m;
 		char name[100];
-		while (fscanf(file,"%f\t%f\t%f\t%f\t%s",&pos,&vel,&r,&m,name) != EOF) {
+		while (fscanf(f,"%f\t%f\t%f\t%f\t%s",&pos,&vel,&r,&m,name) != EOF) {
 			for (char *c=name; *c != '\0'; c++) {
 				if (*c == '_') {
 					*c=' ';
@@ -128,18 +195,19 @@ void CMainFrame::LoadSystem(string fn) {
 			y=pos*sin(angle*pi/180);
 			velx=vel*cos((90+angle)*pi/180);
 			vely=vel*sin((90+angle)*pi/180);
-			engine.addObject(new Object(Vector(x,y), Vector(velx,vely), r, m, name));
+			engine->addObject(new Object(Vector(x,y), Vector(velx,vely), r, m, name));
 		}
-		fclose(file);
+		fclose(f);
+		file=fn;
 	}
 }
 
 void CMainFrame::SaveSystem(string fn) {
 	FILE *file;
 	if ((file=fopen(fn.c_str(),"wb")) != NULL) {
-		fprintf(file,"%d\n",scale);
+		fprintf(file,"%d\t%d\n",scale,timestep);
 		stdscale=scale;
-		objects = engine.getObjectsPointer();
+		objects = engine->getObjectsPointer();
 		for (int i=0; i < objects->size(); i++) {
 			Object *p=objects->at(i);
 			Vector pos=p->getPosition();
@@ -166,6 +234,7 @@ void CMainFrame::OnPaint() {
 	dc.SetTextAlign(TA_CENTER);
 	dc.SetTextColor(WHITE_BRUSH);
 
+	int i;
 	CString str;
 	CRect window;
 	GetClientRect(&window);
@@ -191,16 +260,18 @@ void CMainFrame::OnPaint() {
 	dc.SelectObject(brush);
 	dc.SelectObject(font);
 
-	objects = engine.getObjectsPointer();
-	for (int i=0; i < objects->size(); i++) {
-		Object *planet=objects->at(i);
-		string name=planet->getName();
-		if (name != "Sun" && name != "Missile" && name != "Blackhole") {
-			int planet_x=planet->getPosition().getX()/scale;
-			int planet_y=-planet->getPosition().getY()/scale;
-			int radius=planet->getRadius()/scale;
+	objects = engine->getObjectsPointer();
+	if (invalidate) {
+		for (i=0; i < objects->size(); i++) {
+			Object *planet=objects->at(i);
+			string name=planet->getName();
+			if (name != "Sun" && name != "Missile" && name != "Blackhole") {
+				int planet_x=planet->getPosition().getX()/scale;
+				int planet_y=-planet->getPosition().getY()/scale;
+				int radius=planet->getRadius()/scale;
 
-			//dc.TextOut(middle_x+planet_x,middle_y+planet_y+radius+5,name.c_str());
+				dc.TextOut(middle_x+planet_x,middle_y+planet_y+radius+5,name.c_str());
+			}
 		}
 	}
 	for (i=0; i < objects->size(); i++) {
@@ -214,25 +285,28 @@ void CMainFrame::OnPaint() {
 		dc.SelectStockObject(BLACK_PEN);
 		dc.SelectObject(brush);
 
-		Player *p;
-		if (p1.GetPlanet() == planet) {
-			p=&p1;
-		}
-		if (p2.GetPlanet() == planet) {
-			p=&p2;
-		}
-		if (p1.GetPlanet() == planet || p2.GetPlanet() == planet) {
-			int middle_missile_x = planet_x+radius*cos(p->GetAngle()*pi/180);
-			int middle_missile_y = planet_y+radius*sin(p->GetAngle()*pi/180);
-			dc.MoveTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()+90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()+90)*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()+18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()+18.4349488)*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+7.21110255*cos((p->GetAngle()+33.6900675)*pi/180),	middle_y+middle_missile_y+7.21110255*sin((p->GetAngle()+33.6900675)*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+12		*cos(p->GetAngle()*pi/180),					middle_y+middle_missile_y+12*	sin(p->GetAngle()*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+7.21110255*cos((p->GetAngle()-33.6900675)*pi/180),	middle_y+middle_missile_y+7.21110255*sin((p->GetAngle()-33.6900675)*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()-18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()-18.4349488)*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()-90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()-90)*pi/180)));
-			dc.LineTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
+		//Aim
+		if (invalidate) {
+			Player *p;
+			if (p1.GetPlanet() == planet) {
+				p=&p1;
+			}
+			if (p2.GetPlanet() == planet) {
+				p=&p2;
+			}
+			if (p1.GetPlanet() == planet || p2.GetPlanet() == planet) {
+				int middle_missile_x = planet_x+radius*cos(p->GetAngle()*pi/180);
+				int middle_missile_y = planet_y+radius*sin(p->GetAngle()*pi/180);
+				dc.MoveTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()+90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()+90)*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()+18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()+18.4349488)*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+7.21110255*cos((p->GetAngle()+33.6900675)*pi/180),	middle_y+middle_missile_y+7.21110255*sin((p->GetAngle()+33.6900675)*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+12		*cos(p->GetAngle()*pi/180),					middle_y+middle_missile_y+12*	sin(p->GetAngle()*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+7.21110255*cos((p->GetAngle()-33.6900675)*pi/180),	middle_y+middle_missile_y+7.21110255*sin((p->GetAngle()-33.6900675)*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()-18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()-18.4349488)*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()-90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()-90)*pi/180)));
+				dc.LineTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
+			}
 		}
 
 		if (!start && p1.GetPlanet() != planet && p2.GetPlanet() != planet) {
@@ -252,10 +326,12 @@ void CMainFrame::OnPaint() {
 			dc.SelectStockObject(BLACK_BRUSH);
 		}
 		else if (name == "Sun") {
-			for (int i=0; i < 36; i++) {
-				dc.MoveTo(CPoint(middle_x+planet_x+radius*cos((angle+i*10)%360*pi/180),middle_y+planet_y+radius*sin((angle+i*10)%360*pi/180)));
-				int randlen=rand()%10;
-				dc.LineTo(CPoint(middle_x+planet_x+(radius+4+randlen)*cos((angle+i*10)%360*pi/180),middle_y+planet_y+(radius+4+randlen)*sin((angle+i*10)%360*pi/180)));
+			if (invalidate) {
+				for (int i=0; i < 36; i++) {
+					dc.MoveTo(CPoint(middle_x+planet_x+radius*cos((angle+i*10)%360*pi/180),middle_y+planet_y+radius*sin((angle+i*10)%360*pi/180)));
+					int randlen=rand()%10;
+					dc.LineTo(CPoint(middle_x+planet_x+(radius+4+randlen)*cos((angle+i*10)%360*pi/180),middle_y+planet_y+(radius+4+randlen)*sin((angle+i*10)%360*pi/180)));
+				}
 			}
 			dc.SelectStockObject(NULL_PEN);
 			dc.SelectObject(sunBrush);
@@ -286,33 +362,46 @@ void CMainFrame::OnPaint() {
 		}
 	}
 
-	if (!start) {
-		if (p1.GetPlanet() == NULL) {
-			dc.TextOut(window.right/2,10,"Player 1 - Choose your planet");
+	if (invalidate) {
+		if (!start && !winner) {
+			if (p1.GetPlanet() == NULL) {
+				dc.TextOut(window.right/2,10,"Player 1 - Choose your planet");
+			}
+			else if (p2.GetPlanet() == NULL) {
+				dc.TextOut(window.right/2,10,"Player 2 - Choose your planet");
+			}
 		}
-		else if (p2.GetPlanet() == NULL) {
-			dc.TextOut(window.right/2,10,"Player 2 - Choose your planet");
-		}
+
+		dc.SetTextAlign(TA_LEFT);
+		str.Format("Player 1: %d HP    %d Missiles", p1.GetHP(), p1.GetMissiles());
+		dc.TextOut(40,40,str);
+		str.Format("Player 2: %d HP    %d Missiles", p2.GetHP(), p2.GetMissiles());
+		dc.TextOut(40,55,str);
+		str.Format("%d objects", objects->size());
+		dc.TextOut(40,70,str);
+		str.Format("Scale: %d", scale);
+		dc.TextOut(40,85,str);
+		str.Format("Timestep: %d", timestep);
+		dc.TextOut(40,100,str);
 	}
 
-	dc.SetTextAlign(TA_LEFT);
-	str.Format("Player 1: %d HP    %d Missiles", p1.GetHP(), p1.GetMissiles());
-	dc.TextOut(40,10,str);
-	str.Format("Player 2: %d HP    %d Missiles", p2.GetHP(), p2.GetMissiles());
-	dc.TextOut(40,25,str);
-	str.Format("%d objects", objects->size());
-	dc.TextOut(40,40,str);
-	str.Format("Scale: %d", scale);
-	dc.TextOut(40,55,str);
+	if (winner) {
+		dc.SetTextAlign(TA_CENTER);
+		str.Format("Player %d is the winner", winner);
+		dc.TextOut(window.right/2,10,str);
+		dc.TextOut(window.right/2,25,"Press enter to start a new round");
+	}
 }
 
 void CMainFrame::OnTimer(UINT nIDEvent) {
 	CClientDC dc(this);
 
-	if (nIDEvent == UPDATE_TIMER) {
-		for(int a=0;a<50;a++){
-			engine.doPhysics();
+	if (nIDEvent == UPDATE_TIMER && start) {
+		for (int a=0;a<25;a++){
+			engine->doPhysics(timestep);
 		}
+	}
+	else if (nIDEvent == DRAW_TIMER) {
 		angle=(angle-1)%360;
 		if (keys['A']) {
 			p1.SetAngle(p1.GetAngle()-(keys[16]?1:5));
@@ -326,10 +415,10 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 		if (keys['L']) {
 			p2.SetAngle(p2.GetAngle()+(keys[16]?1:5));
 		}
-		if (keys['W']) {
+		if (keys['W'] && start) {
 			p1.Fire();
 		}
-		if (keys['I']) {
+		if (keys['I'] && start) {
 			p2.Fire();
 		}
 		if (keys[37]) { //left
@@ -376,21 +465,28 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 			scale=(scale-50000<1?1:scale-50000);
 			zoom.SetPos(scale);
 		}
+
 		for (int i=0; i < objects->size(); i++) {
 			Object *planet=objects->at(i);
 			if (planet->getName() == "Blackhole") {
 				planet->updateMass(planet->getMass()*1.01);
 			}
 		}
-	}
-	else if(nIDEvent == DRAW_TIMER){
-		Invalidate(FALSE);
+
+		Invalidate(invalidate);
 	}
 	CWnd::OnTimer(nIDEvent);
 }
 
 void CMainFrame::OnKeyDown(UINT nChar, UINT nRep, UINT nFlags)  {
 	keys[nChar]=1;
+
+	if (nChar == 13 && winner) {
+		winner=0;
+		p1.Reset();
+		p2.Reset();
+		OnMenuReset();
+	}
 /*
 	char text[100];
 	sprintf(text,"nChar: %d", nChar);
@@ -480,13 +576,20 @@ void CMainFrame::OnVScroll(UINT nSBCode, UINT nPos, CWnd *pSlider) {
 	this->SetFocus();
 }
 
-BOOL CMainFrame::OnMouseWheel(UINT NFlags, short zDelta, CPoint pt){
-	if(scale-3000*zDelta >= 1){
+void CMainFrame::OnHScroll(UINT nSBCode, UINT nPos, CWnd *pSlider) {
+	CSliderCtrl *pSld;
+	pSld=(CSliderCtrl*)pSlider;
+	timestep=pSld->GetPos();
+	this->SetFocus();
+}
+
+BOOL CMainFrame::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) {
+	if (scale-3000*zDelta >= 1) {
 		scale-=3000*zDelta;
 	}
-	else
-		scale-=3000*zDelta;
-
+	else {
+		scale=1;
+	}
 	zoom.SetPos(scale);
 	return 1;
 }

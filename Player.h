@@ -1,8 +1,8 @@
-#ifndef __player__
-#define __player__
-
 #include "fysik/Physics.h"
 #include "fysik/Object.h"
+
+#ifndef __player__
+#define __player__
 
 class Player {
 private:
@@ -22,6 +22,7 @@ public:
 	void SetAngle(int a);
 	void DecreaseMissile();
 	void Fire();
+	void Reset();
 
 	Object *GetPlanet();
 	int GetHP();

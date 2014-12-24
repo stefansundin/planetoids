@@ -1,5 +1,5 @@
 #include <iostream>
-#include "fysik/millitime.h"
+#include <windows.h>
 #include "Player.h"
 
 const double pi=3.14159265358979323846;
@@ -40,17 +40,25 @@ void Player::DecreaseMissile() {
 }
 
 void Player::Fire() {
-	if (planet != NULL && missiles > 0 && millitime() >= cooldown+2000) {
+	if (planet != NULL && missiles > 0 && GetTickCount() >= cooldown+2000) {
 		Vector pos(planet->getPosition()+Vector(
-			planet->getRadius()*cos(angle*pi/180*-1)+5*cos(angle*pi/180*-1),
-			planet->getRadius()*sin(angle*pi/180*-1)+5*sin(angle*pi/180*-1)));
+			planet->getRadius()*cos(angle*pi/180*-1)+550000*cos(angle*pi/180*-1),
+			planet->getRadius()*sin(angle*pi/180*-1)+550000*sin(angle*pi/180*-1)));
 		Vector vel(planet->getVelocity()+Vector(
-			100000*cos(angle*pi/180*-1),
-			100000*sin(angle*pi/180*-1)));
-		engine->addObject(new Object(pos,vel, 5000000, 10000, "Missile"));
-		cooldown=millitime();
+			30000*cos(angle*pi/180*-1),
+			30000*sin(angle*pi/180*-1)));
+		engine->addObject(new Object(pos,vel, 500000, 10000, "Missile"));
+		cooldown=GetTickCount();
 		missiles--;
 	}
+}
+
+void Player::Reset() {
+	planet=NULL;
+	hp=100;
+	angle=0;
+	missiles=1000;
+	cooldown=0;
 }
 
 Object *Player::GetPlanet() {

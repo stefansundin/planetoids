@@ -5,25 +5,23 @@
 #include <vector>
 
 #include "Object.h"
-#include "millitime.h"
 
 class Physics
 {
 public:
-	Physics();
+	Physics(void (*p_funptr)(Object*, Object*));
 	~Physics();
 
 	bool addObject(Object *p_object);
 	bool removeObject(Object *p_object);
 	void clear();
-	void doPhysics();
+	void doPhysics(double p_timestep);
 
 	std::vector<Object*>* getObjectsPointer() const;	//use this to get the objects for rendering
 
-public:
+protected:
+	void (*m_funptr)(Object*, Object*);
 	std::vector<Object*> *m_objects;
-
-	long m_at_last_physics;
 };
 
 #endif //Physics_h
