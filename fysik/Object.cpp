@@ -1,4 +1,5 @@
 #include "Object.h"
+#include "../Player.h"
 
 Object::Object()
 {
@@ -104,3 +105,11 @@ void Object::updateMass(double p_mass)
 {
 	m_mass = p_mass;
 }
+
+/*Player *Object::getHP(){
+	return Bey;
+}
+
+void Object::setPlayer(Player *b){
+	Bey=b;
+}*/

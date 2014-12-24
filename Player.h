@@ -1,8 +1,8 @@
-#include "fysik/Physics.h"
-#include "fysik/Object.h"
-
 #ifndef __player__
 #define __player__
+
+#include "fysik/Physics.h"
+#include "fysik/Object.h"
 
 class Player {
 private:

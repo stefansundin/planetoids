@@ -61,7 +61,7 @@ void Physics::doPhysics()
 {
 	int i, j;
 	double timestep = millitime()-m_at_last_physics;
-	timestep+=100000;
+	timestep+=50000;
 	std::vector<Object*> destroy;
 	//printf("timestep: (%l)\n", timestep);
 	//std::cout << "timestep: (" << timestep << ")\n";

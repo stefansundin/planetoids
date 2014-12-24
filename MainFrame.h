@@ -9,6 +9,7 @@
 using namespace std;
 
 #define UPDATE_TIMER 1
+#define DRAW_TIMER 2
 #define IDC_SLH_ZOOM 300
 
 class CMainFrame: public CFrameWnd {
@@ -38,7 +39,8 @@ public:
 	void OnMenuBlackhole();
 	void LoadSystem(string fn);
 	void SaveSystem(string fn);
-
+	
+	afx_msg BOOL OnMouseWheel(UINT nFlags,short zDelta, CPoint pt);
 	afx_msg void OnPaint();
 	afx_msg void OnKeyDown(UINT nChar, UINT nRep, UINT nFlags);
 	afx_msg void OnKeyUp(UINT nChar, UINT nRep, UINT nFlags);

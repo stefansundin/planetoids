@@ -24,6 +24,9 @@ long millitime()
 	GetSystemTime(&tv);
 	long t=/*(tv.wYear-1980)*365*24*60*60*1000+*/tv.wMonth*12*24*60*60*1000+tv.wDay*24*60*60*1000+tv.wHour*60*60*1000+tv.wMinute*60*1000+tv.wSecond*1000+tv.wMilliseconds;
 	//std::cout << t << "\n";
+	if(t<0){
+		t*=-1;
+	}
 	return t;
 
 }

@@ -15,6 +15,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_RBUTTONDOWN()
 	ON_WM_VSCROLL()
+	ON_WM_MOUSEWHEEL()
 	ON_WM_SIZE()
 	ON_COMMAND(IDM_MENU_RESET,OnMenuReset)
 	ON_COMMAND(IDM_MENU_OPEN,OnMenuOpen)
@@ -49,18 +50,20 @@ CMainFrame::CMainFrame() {
 	zoom.Create(WS_CHILD |WS_VISIBLE |TBS_VERT |TBS_RIGHT,
 		CRect(CPoint(0,0),CSize(30,window.bottom)),
 		this, IDC_SLH_ZOOM);
-	zoom.SetRange(1,152097700);	zoom.SetTicFreq(1);
+	zoom.SetRange(1,1520977000);	zoom.SetTicFreq(1);
 	zoom.SetPos(0);
 	zoom.SetLineSize(1);	zoom.SetPageSize(50);
 
 	LoadSystem("system.txt");
 	objects = engine.getObjectsPointer();
 
-	SetTimer(UPDATE_TIMER, 80, NULL);
+	SetTimer(UPDATE_TIMER, 54, NULL);
+	SetTimer(DRAW_TIMER, 100, NULL);
 }
 
 CMainFrame::~CMainFrame() {
 	KillTimer(UPDATE_TIMER);
+	KillTimer(DRAW_TIMER);
 }
 
 void CMainFrame::OnMenuReset() {
@@ -197,7 +200,7 @@ void CMainFrame::OnPaint() {
 			int planet_y=-planet->getPosition().getY()/scale;
 			int radius=planet->getRadius()/scale;
 
-			dc.TextOut(middle_x+planet_x,middle_y+planet_y+radius+5,name.c_str());
+			//dc.TextOut(middle_x+planet_x,middle_y+planet_y+radius+5,name.c_str());
 		}
 	}
 	for (i=0; i < objects->size(); i++) {
@@ -307,7 +310,9 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 	CClientDC dc(this);
 
 	if (nIDEvent == UPDATE_TIMER) {
-		engine.doPhysics();
+		for(int a=0;a<50;a++){
+			engine.doPhysics();
+		}
 		angle=(angle-1)%360;
 		if (keys['A']) {
 			p1.SetAngle(p1.GetAngle()-(keys[16]?1:5));
@@ -377,7 +382,9 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 				planet->updateMass(planet->getMass()*1.01);
 			}
 		}
-		Invalidate();
+	}
+	else if(nIDEvent == DRAW_TIMER){
+		Invalidate(FALSE);
 	}
 	CWnd::OnTimer(nIDEvent);
 }
@@ -471,6 +478,17 @@ void CMainFrame::OnVScroll(UINT nSBCode, UINT nPos, CWnd *pSlider) {
 	scale=pSld->GetPos();
 	//scale=(scale==1?1:scale);
 	this->SetFocus();
+}
+
+BOOL CMainFrame::OnMouseWheel(UINT NFlags, short zDelta, CPoint pt){
+	if(scale-3000*zDelta >= 1){
+		scale-=3000*zDelta;
+	}
+	else
+		scale-=3000*zDelta;
+
+	zoom.SetPos(scale);
+	return 1;
 }
 
 void CMainFrame::OnSize() {
