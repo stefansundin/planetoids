@@ -11,6 +11,13 @@ Animation::Animation(Vector p, string t, string v) {
 	frame=0;
 }
 
+Animation::Animation(Vector p, string t) {
+	pos=p;
+	type=t;
+	value="";
+	frame=0;
+}
+
 void Animation::step() {
 	frame++;
 }

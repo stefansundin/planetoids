@@ -20,7 +20,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_VSCROLL()
 	ON_WM_HSCROLL()
 	ON_WM_MOUSEWHEEL()
-	ON_WM_SIZE()
+//	ON_WM_SIZE()
 	ON_COMMAND(IDM_MENU_RESET,OnMenuReset)
 	ON_COMMAND(IDM_MENU_OPEN,OnMenuOpen)
 	ON_COMMAND(IDM_MENU_ADD,OnMenuAdd)
@@ -66,7 +66,7 @@ CMainFrame::CMainFrame() {
 	zoom.SetLineSize(1);	zoom.SetPageSize(500000);
 
 	speed.Create(WS_CHILD |WS_VISIBLE |TBS_HORZ |TBS_RIGHT,
-		CRect(CPoint(30,0),CSize(200,30)),
+		CRect(CPoint(30,0),CSize(window.right-30,30)),
 		this, IDC_SLH_SPEED);
 	speed.SetRange(1,35000000);	speed.SetTicFreq(500);
 	speed.SetPos(timestep);
@@ -88,53 +88,65 @@ CMainFrame::~CMainFrame() {
 void CMainFrame::collide(Object* obj1, Object* obj2) {
 	string name1=obj1->getName();
 	string name2=obj2->getName();
+	if ((name1=="Missile" && name2 != "Missile") || (name2=="Missile" && name1 != "Missile")){
+		ObjectX *missile=(ObjectX*)(name1=="Missile"?obj1:obj2);
+		ObjectX *planet=(ObjectX*)(missile==obj1?obj2:obj1);
+		int damage=10+rand()%6;	
+		stringstream ss;
+		ss << damage;
+		animations.push_back(Animation(missile->getPosition(),"Damage",ss.str()));
+		planet->SetHP(planet->GetHP()-damage);
+		if (planet->GetHP() <= 0) {
+			if (planet->getName() == "Sun") {
+				animations.push_back(Animation(missile->getPosition(),"Supernova"));
+			}
+			else {
+				animations.push_back(Animation(missile->getPosition(),"Megasplosion"));
+			}
+		}
+		else {
+			animations.push_back(Animation(missile->getPosition(),"Explosion"));
+		}
+	}
 	
 	if (name1 == "Missile" && name2 == "Missile") {
-		animations.push_back(Animation(obj1->getPosition(),"Explosion",""));
+		animations.push_back(Animation(obj1->getPosition(),"Explosion"));
 		engine->removeObject(obj1);
 		engine->removeObject(obj2);
 	}
 	else if ((name1 == "Missile" && (name2 == "Sun" || name2 == "Blackhole"))
 		  || (name2 == "Missile" && (name1 == "Sun" || name1 == "Blackhole"))) {
 		ObjectX *missile=(ObjectX*)(name1=="Missile"?obj1:obj2);
-		animations.push_back(Animation(missile->getPosition(),"Explosion",""));
+		ObjectX *sun=(ObjectX*)(missile==obj1?obj2:obj1);
+		if (sun->GetHP() <= 0) {
+			engine->removeObject(sun);
+		}
 		engine->removeObject(missile);
 	}
 	else if ((name1 == "Missile" && (obj2 == p1.GetPlanet() || obj2 == p2.GetPlanet()))
 	      || (name2 == "Missile" && (obj1 == p1.GetPlanet() || obj1 == p2.GetPlanet()))) {
 		ObjectX *missile=(ObjectX*)(name1=="Missile"?obj1:obj2);
 		ObjectX *planet=(ObjectX*)(missile==obj1?obj2:obj1);
-		int damage=10+rand()%5;
-		stringstream ss;
-		ss << damage;
-		animations.push_back(Animation(missile->getPosition(),"Damage",ss.str()));
-		Player *player=(planet == p1.GetPlanet()?&p1:&p2);
-		player->SetHP(player->GetHP()-damage);
-		if (player->GetHP() <= 0) {
-			winner=(planet == p1.GetPlanet()?2:1);
-			start=false;
-			animations.push_back(Animation(missile->getPosition(),"Megasplosion",""));
-		}
-		else {
-			animations.push_back(Animation(missile->getPosition(),"Explosion",""));
-		}
+		ObjectX *player=(planet == p1.GetPlanet()?p1.GetPlanet():p2.GetPlanet());
 		engine->removeObject(missile);
 	}
 	else if (name1 == "Missile" || name2 == "Missile") {
 		ObjectX *missile=(ObjectX*)(name1=="Missile"?obj1:obj2);
 		ObjectX *planet=(ObjectX*)(missile==obj1?obj2:obj1);
-		animations.push_back(Animation(missile->getPosition(),"Explosion",""));
-		engine->removeObject(missile);
-		planet->updateRadius(planet->getRadius()*0.8);
-		if (planet->getRadius()/scale <= 2) {
+		if (planet->GetHP()<=0){
 			engine->removeObject(planet);
 		}
+		engine->removeObject(missile);
+		/*planet->updateRadius(planet->getRadius()*0.8);
+		if (planet->getRadius()/scale <= 2) {
+			engine->removeObject(planet);
+		}*/
 		//planet->updateMass(planet->getMass()*0.9);
 	}
 	else if (name1 == "Blackhole" || name2 == "Blackhole") {
 		ObjectX *blackhole=(ObjectX*)(name1=="Blackhole"?obj1:obj2);
 		ObjectX *planet=(ObjectX*)(blackhole==obj1?obj2:obj1);
-		animations.push_back(Animation(planet->getPosition(),"Explosion",""));
+		//animations.push_back(Animation(planet->getPosition(),"Explosion"));
 		blackhole->updateRadius(blackhole->getRadius()+0.5*planet->getRadius());
 		blackhole->updateMass(blackhole->getMass()+0.5*planet->getMass());
 		engine->removeObject(planet);
@@ -230,7 +242,11 @@ void CMainFrame::LoadSystem(string fn) {
 			y=pos*sin(angle*pi/180);
 			velx=vel*cos((90+angle)*pi/180);
 			vely=vel*sin((90+angle)*pi/180);
-			engine->addObject(new ObjectX(Vector(x,y), Vector(velx,vely), rad, m, name, r,g,b));
+			ObjectX *newobject=new ObjectX(Vector(x,y), Vector(velx,vely), rad, m, name, r,g,b);
+			engine->addObject(newobject);
+			if(name=="Sun"){
+				newobject->SetHP(10000);
+			}
 		}
 		fclose(f);
 		file=fn;
@@ -401,9 +417,9 @@ void CMainFrame::OnPaint() {
 			if (planet->getVelocity().getX()<0){
 				angle+=180;
 			}
-			/*if (angle == 0) {
+			if (angle == 0) {
 				angle=0.00001;
-			}*/
+			}
 
 			dc.MoveTo(middle_x+planet_x,middle_y+planet_y);
 			dc.LineTo(middle_x+planet_x+sqrt(25)*cos((angle+90)*pi/180),             middle_y+planet_y+sqrt(25)*      sin((angle+90)*pi/180));
@@ -433,9 +449,9 @@ void CMainFrame::OnPaint() {
 
 	if (invalidate) {
 		dc.SetTextAlign(TA_LEFT);
-		str.Format("Player 1: %d HP    %d Missiles", p1.GetHP(), p1.GetMissiles());
+		str.Format("Player 1: %d HP", (p1.GetPlanet()!=NULL?p1.GetPlanet()->GetHP():100));
 		dc.TextOut(40,40,str);
-		str.Format("Player 2: %d HP    %d Missiles", p2.GetHP(), p2.GetMissiles());
+		str.Format("Player 2: %d HP", (p2.GetPlanet()!=NULL?p2.GetPlanet()->GetHP():100));
 		dc.TextOut(40,55,str);
 		str.Format("%d objects", objects->size());
 		dc.TextOut(40,70,str);
@@ -452,19 +468,25 @@ void CMainFrame::OnPaint() {
 		dc.SelectObject(font);
 	}
 
+	//Check if someone has won
+	if (p2.GetPlanet() != NULL && (p1.GetPlanet()->GetHP() <= 0 || p2.GetPlanet()->GetHP() <= 0)) {
+		winner=(p1.GetPlanet()->GetHP() <= 0?2:1);
+		start=false;
+	}
+
 	if (invalidate && !start && !winner) {
 		if (p1.GetPlanet() == NULL) {
-			dc.TextOut(window.right/2,10,"Player 1 - Choose your planet");
+			dc.TextOut(window.right/2,40,"Player 1 - Choose your planet");
 		}
 		else if (p2.GetPlanet() == NULL) {
-			dc.TextOut(window.right/2,10,"Player 2 - Choose your planet");
+			dc.TextOut(window.right/2,40,"Player 2 - Choose your planet");
 		}
 	}
 
 	if (winner) {
 		str.Format("Player %d is the winner", winner);
-		dc.TextOut(window.right/2,10,str);
-		dc.TextOut(window.right/2,25,"Press enter to start a new round");
+		dc.TextOut(window.right/2,40,str);
+		dc.TextOut(window.right/2,55,"Press enter to start a new round");
 	}
 
 	dc.SelectStockObject(NULL_PEN);
@@ -477,6 +499,16 @@ void CMainFrame::OnPaint() {
 		int frame=ani->getFrame();
 		if (type == "Megasplosion" && frame <= 10) {
 			int radius[]={7,20,30,40,50,60,65,65,70,50,30,10};
+			int r=radius[frame];
+			dc.SelectObject(boomBrush1);
+			dc.Ellipse(CRect(CPoint(middle_x+x-r,middle_y+y-r),CSize(2*r,2*r)));
+			dc.SelectObject(boomBrush2);
+			dc.Ellipse(CRect(CPoint(middle_x+x-0.6*r,middle_y+y-0.6*r),CSize(2*0.6*r,2*0.6*r)));
+			dc.SelectObject(boomBrush3);
+			dc.Ellipse(CRect(CPoint(middle_x+x-0.3*r,middle_y+y-0.3*r),CSize(2*0.3*r,2*0.3*r)));
+		}
+		if (type == "Supernova" && frame <= 11) {
+			int radius[]={7,20,30,40,50,60,100,160,200,250,300,350};
 			int r=radius[frame];
 			dc.SelectObject(boomBrush1);
 			dc.Ellipse(CRect(CPoint(middle_x+x-r,middle_y+y-r),CSize(2*r,2*r)));
@@ -498,6 +530,16 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 	}
 	else if (nIDEvent == DRAW_TIMER) {
 		angle=(angle-1)%360;
+		for(int o=0; o < objects->size(); o++){
+			ObjectX *missile=(ObjectX*)objects->at(o);
+			if(missile->getName() == "Missile"){
+				if(missile->getTime() > 10000002000){
+					animations.push_back(Animation(missile->getPosition(),"Explosion"));
+					engine->removeObject(missile);
+				}
+				missile->incTime(timestep);
+			}
+		}
 		if (keys['A']) {
 			p1.SetAngle(p1.GetAngle()-(keys[16]?1:8));
 		}
@@ -561,7 +603,7 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 			zoom.SetPos(scale);
 		}*/
 		/*if (keys['X']) {
-			animations.push_back(Animation(Vector(0,0),"Explosion",""));
+			animations.push_back(Animation(Vector(0,0),"Explosion"));
 		}*/
 		if (keys[' ']) {
 			nuke++;
@@ -584,25 +626,115 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 			}
 		}
 
+
+		for (i=0; i < animations.size(); i++) {
+			Animation *ani=&animations.at(i);
+			string type=ani->getType();
+			Vector *pos=ani->getPos();
+			int frame=ani->getFrame();
+			if (type == "Megasplosion" && frame == 8) {
+				int r=70;
+				for(int q=0;q<objects->size();q++){
+					ObjectX *planet = (ObjectX*)objects->at(q);
+					Vector *poss = &planet->getPosition();
+					if((*pos-*poss).getLength()<r*scale+planet->getRadius()){
+						planet->SetHP(planet->GetHP()-50);
+						animations.push_back(Animation(planet->getPosition(),"Damage","50"));
+					}
+					if(planet->GetHP()<=0){
+						string name = planet->getName();
+						if(name == "Sun"){
+							animations.push_back(Animation(planet->getPosition(),"Supernova"));							
+						}
+						else if(name == "Missile"){
+							animations.push_back(Animation(planet->getPosition(),"Explosion"));							
+						}
+						else{
+							animations.push_back(Animation(planet->getPosition(),"Megasplosion"));
+						}
+						engine->removeObject(planet);
+					}
+				}
+			}
+			else if (type == "Supernova" && frame == 11) {
+				int r=350;
+				for(int q=0;q<objects->size();q++){
+					ObjectX *planet = (ObjectX*)objects->at(q);
+					Vector *poss = &planet->getPosition();
+					if((*pos-*poss).getLength()<r*scale+planet->getRadius()){
+						planet->SetHP(planet->GetHP()-1000);
+						animations.push_back(Animation(planet->getPosition(),"Damage","1000"));
+					}
+					if(planet->GetHP()<=0){
+						string name = planet->getName();
+						if(name == "Sun"){
+							animations.push_back(Animation(planet->getPosition(),"Supernova"));							
+						}
+						else if(name == "Missile"){
+							animations.push_back(Animation(planet->getPosition(),"Explosion"));							
+						}
+						else{
+							animations.push_back(Animation(planet->getPosition(),"Megasplosion"));
+						}
+						engine->removeObject(planet);		
+					}
+				}
+			}
+			else if (type == "Explosion" && frame == 5) {
+				int r=23;
+				for(int q=0;q<objects->size();q++){
+					ObjectX *planet = (ObjectX*)objects->at(q);
+					Vector *poss = &planet->getPosition();
+					if((*pos-*poss).getLength()<r*scale+planet->getRadius()){
+						planet->SetHP(planet->GetHP()-5);
+						animations.push_back(Animation(planet->getPosition(),"Damage","5"));
+					}
+					if(planet->GetHP()<=0){
+						string name = planet->getName();
+						if(name == "Sun"){
+							animations.push_back(Animation(planet->getPosition(),"Supernova"));							
+						}
+						else if(name == "Missile"){
+							animations.push_back(Animation(planet->getPosition(),"Explosion"));							
+						}
+						else{
+							animations.push_back(Animation(planet->getPosition(),"Megasplosion"));
+						}
+						engine->removeObject(planet);
+					}
+				}
+			}
+		}
+
+
+
+
+
 		//Step animations
 		for (i=0; i < animations.size(); i++) {
 			animations.at(i).step();
 		}
+
 		//Remove animations that are done
 		for (i=0; i < animations.size(); i++) {
 			string type=animations.at(i).getType();
 			int frame=animations.at(i).getFrame();
 			if ((type == "Explosion" && frame > 9)
 			 || (type == "Damage" && frame > 10)
-			 || (type == "Megasplosion" && frame > 10)) {
+			 || (type == "Megasplosion" && frame > 10)
+			 || (type == "Supernova" && frame > 10)) {
 				vector<Animation>::iterator it=animations.begin()+i;
 				animations.erase(it);
 				break;
 			}
 		}
 
-		Invalidate(invalidate);
+		//Invalidate(invalidate);
+		CRect window;
+		GetClientRect(&window);
+		InvalidateRect(CRect(30,30,window.right, window.bottom),invalidate);
 	}
+
 	CWnd::OnTimer(nIDEvent);
 }
 

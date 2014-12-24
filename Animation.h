@@ -14,6 +14,7 @@ private:
 	
 public:
 	Animation(Vector p, string t, string v);
+	Animation(Vector p, string t);
 	
 	void step();
 	Vector *getPos();

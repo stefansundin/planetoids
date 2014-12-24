@@ -8,9 +8,7 @@ using namespace std;
 
 Player::Player() {
 	planet=NULL;
-	hp=100;
 	angle=0;
-	missiles=1000;
 	cooldown=0;
 	engine=NULL;
 }
@@ -24,41 +22,30 @@ void Player::SetPlanet(ObjectX *p) {
 	angle=rand()%360;
 }
 
-void Player::SetHP(int h) {
-	hp=h;
-}
-
 void Player::SetAngle(int a) {
 	if (GetPlanet() != NULL) {
 		angle=a%360;
 	}
 }
 
-void Player::DecreaseMissile() {
-	if (missiles > 0) {
-		missiles--;
-	}
-}
-
 void Player::Fire() {
-	if (planet != NULL && missiles > 0 && GetTickCount() >= cooldown+2000) {
+	if (planet != NULL && GetTickCount() >= cooldown+2000) {
 		Vector pos(planet->getPosition()+Vector(
 			planet->getRadius()*cos(angle*pi/180*-1)+(planet->getRadius()+2000000)*cos(angle*pi/180*-1),
 			planet->getRadius()*sin(angle*pi/180*-1)+(planet->getRadius()+2000000)*sin(angle*pi/180*-1)));
 		Vector vel(planet->getVelocity()+Vector(
-			35000*cos(angle*pi/180*-1),
-			35000*sin(angle*pi/180*-1)));
-		engine->addObject(new ObjectX(pos,vel, 1900000, 10000, "Missile"));
+			50000*cos(angle*pi/180*-1),
+			50000*sin(angle*pi/180*-1)));
+		ObjectX *missile = new ObjectX(pos,vel, 1900000, 10000, "Missile");
+		engine->addObject(missile);
+		missile->SetHP(1);
 		cooldown=GetTickCount();
-		missiles--;
 	}
 }
 
 void Player::Reset() {
 	planet=NULL;
-	hp=100;
 	angle=0;
-	missiles=1000;
 	cooldown=0;
 }
 
@@ -66,14 +53,6 @@ ObjectX *Player::GetPlanet() {
 	return planet;
 }
 
-int Player::GetHP() {
-	return hp;
-}
-
 int Player::GetAngle() {
 	return angle;
-}
-
-int Player::GetMissiles() {
-	return missiles;
 }

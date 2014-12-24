@@ -3,33 +3,9 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: Main - Win32 Debug--------------------
+--------------------Configuration: Main - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP24.tmp" with contents
-[
-/nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "_AFXDLL" /Fp"Debug/Main.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"C:\Stuff\School\Programmering C\MFC\Planetoids\Player.cpp"
-]
-Creating command line "cl.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP24.tmp" 
-Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP25.tmp" with contents
-[
-resources.res /nologo /subsystem:windows /incremental:yes /pdb:"Debug/Planetoids.pdb" /debug /machine:I386 /out:"Debug/Planetoids.exe" /pdbtype:sept 
-".\Debug\Animation.obj"
-".\Debug\Main.obj"
-".\Debug\MainFrame.obj"
-".\Debug\MyWinApp.obj"
-".\Debug\Object.obj"
-".\Debug\ObjectX.obj"
-".\Debug\Physics.obj"
-".\Debug\Player.obj"
-".\Debug\Vector.obj"
-]
-Creating command line "link.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP25.tmp"
-<h3>Output Window</h3>
-Compiling...
-Player.cpp
-Linking...
 
 
 
