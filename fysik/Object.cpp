@@ -25,6 +25,10 @@ Vector Object::getPosition() const
 {
 	return m_position;
 }
+Vector Object::getVelocity() const
+{
+	return m_velocity;
+}
 double Object::getRadius() const
 {
 	return m_radius;
@@ -46,7 +50,13 @@ const Vector Object::getGForce(const Object *p_other)
 	//         r*r
 
 	Vector distance = p_other->m_position - m_position;
-	double force = ( G * (m_mass * p_other->m_mass) ) / ( distance.getLength() * distance.getLength() );
+	double force;
+	if(distance.getLength() == 0){
+		force = 1;
+	}
+	else{
+		force = ( G * (m_mass * p_other->m_mass) ) / ( distance.getLength() * distance.getLength() );
+	}
 
 	return distance * force;
 }
@@ -80,4 +90,3 @@ void Object::updatePosition(double p_time_step)
 {
 	m_position += m_velocity*(p_time_step/1000);
 }
-

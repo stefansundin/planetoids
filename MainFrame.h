@@ -1,6 +1,7 @@
 #include <afxwin.h>
 #include "fysik/Physics.h"
 #include "Player.h"
+#include "Missile.h"
 #include <iostream>
 
 using namespace std;
@@ -20,7 +21,9 @@ private:
 public:
 	CMainFrame();
 	~CMainFrame();
-	
+
+	void Fire(Player &p);
+
 	afx_msg void OnPaint();
 	afx_msg void OnChar(UINT nChar, UINT nRep, UINT nFlags);
 	afx_msg void OnTimer(UINT nIDEvent);

@@ -6,7 +6,7 @@ class Player {
 private:
 	int Planet;
 	int HP;
-	int Angle;
+	int Angle, bAngle;
 	int Missiles;
 	int SelectedMissile;
 	
@@ -18,7 +18,9 @@ public:
 	void SetAngle(int a);
 	void SelectMissile(int s);
 	void DecreaseMissile();
-	
+
+//	void WriteMissile(int angle, int middle_x, int middle_y, int planet_x, int planet_y, int radius);
+	int GetbAngle();
 	int GetPlanet();
 	int GetHP();
 	int GetAngle();

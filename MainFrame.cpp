@@ -21,14 +21,20 @@ CMainFrame::CMainFrame() {
 	start=false;
 	MousePos=CPoint(0,0);
 
-	engine.addObject(new Object(Vector(0,0), Vector(0,0), 30, 1e12, "Sun"));
-	engine.addObject(new Object(Vector(150,0), Vector(0,2), 15, 6e5, "stor planet"));
-	engine.addObject(new Object(Vector(0,-160), Vector(1,0), 10, 1e5, "liten planet"));
+	engine.addObject(new Object(Vector(-50,0), Vector(0,10), 20, 1e13, "Sun"));
+	engine.addObject(new Object(Vector(50,0), Vector(0,-10), 20, 1e13, "Sun"));
+	engine.addObject(new Object(Vector(250,0), Vector(0,25), 15, 6e5, "Arakkis"));
+	engine.addObject(new Object(Vector(-350,0), Vector(0,25), 10, 1e5, "Tatooine"));
+	engine.addObject(new Object(Vector(0,-200), Vector(-20,0), 8, 6e5, "Earth"));
+	engine.addObject(new Object(Vector(-100,250), Vector(-23,0), 12, 6e5, "Vulcan"));
+	engine.addObject(new Object(Vector(100,-150), Vector(24,0), 10, 1e5, "Lanthea"));
+//	engine.addObject(new Object(Vector(-75,70), Vector(17,20), 10, 1e5, "Rigel IV"));
+
 	objects = engine.getObjectsPointer();
 
-	Create(NULL,"Planetoids",WS_OVERLAPPEDWINDOW,CRect(20,30,900,510));
+	Create(NULL,"Planetoids",WS_OVERLAPPEDWINDOW,CRect(20,30,900,650));
 
-	SetTimer(UPDATE_TIMER, 100, NULL);
+	SetTimer(UPDATE_TIMER, 80, NULL);
 }
 
 CMainFrame::~CMainFrame() {
@@ -56,7 +62,6 @@ void CMainFrame::OnPaint() {
 	sunBrush.CreateSolidBrush(RGB(255,255,0));
 
 	objects = engine.getObjectsPointer();
-	
 	for (int i=0; i < objects->size(); i++) {
 		Object *planet=objects->at(i);
 		int planet_x=planet->getPosition().getX();
@@ -74,8 +79,20 @@ void CMainFrame::OnPaint() {
 			p=&p2;
 		}
 		if (p1.GetPlanet() == i || p2.GetPlanet() == i) {
-			dc.MoveTo(CPoint(middle_x+planet_x,middle_y+planet_y));
-			dc.LineTo(CPoint(middle_x+planet_x+(radius+7)*cos(p->GetAngle()*pi/180),middle_y+planet_y+(radius+7)*sin(p->GetAngle()*pi/180)));
+			int middle_missile_x = planet_x+radius*cos(p->GetAngle()*pi/180);
+			int middle_missile_y = planet_y+radius*sin(p->GetAngle()*pi/180);
+			dc.MoveTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()+90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()+90)*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()+18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()+18.4349488)*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+7.21110255*cos((p->GetAngle()+33.6900675)*pi/180),	middle_y+middle_missile_y+7.21110255*sin((p->GetAngle()+33.6900675)*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+12		*cos(p->GetAngle()*pi/180),					middle_y+middle_missile_y+12*	sin(p->GetAngle()*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+7.21110255*cos((p->GetAngle()-33.6900675)*pi/180),	middle_y+middle_missile_y+7.21110255*sin((p->GetAngle()-33.6900675)*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()-18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()-18.4349488)*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()-90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()-90)*pi/180)));
+			dc.LineTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
+
+//			dc.MoveTo(CPoint(middle_x+planet_x,middle_y+planet_y));
+//			dc.LineTo(CPoint(middle_x+planet_x+(radius+7)*cos(p->GetAngle()*pi/180), middle_y+planet_y+(radius+7)*sin(p->GetAngle()*pi/180)));
 		}
 
 		if (!start && p1.GetPlanet() != i && p2.GetPlanet() != i) {
@@ -107,6 +124,12 @@ void CMainFrame::OnPaint() {
 			dc.TextOut(middle_x-95,window.bottom-30,"Player 2 - Choose your planet");
 		}
 	}
+
+	CString str;
+	str.Format("Player 1: %d", p1.GetMissiles());
+	dc.TextOut(30,5,str);
+	str.Format("Player 2: %d", p2.GetMissiles());
+	dc.TextOut(30,20,str);
 }
 
 void CMainFrame::OnTimer(UINT nIDEvent) {
@@ -120,6 +143,16 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 	CWnd::OnTimer(nIDEvent);
 }
 
+
+void CMainFrame::Fire(Player &p)  {
+	if (p.GetPlanet() != -1 && p.GetMissiles() > 0) {
+		objects = engine.getObjectsPointer();
+		Object *planet=objects->at(p.GetPlanet());
+		engine.addObject(new Object(planet->getPosition(), planet->getVelocity()+Vector(0,20), 3, 10, "Missile"));
+		p.DecreaseMissile();
+	}
+}
+
 void CMainFrame::OnChar(UINT nChar, UINT nRep, UINT nFlags)  {
 	switch(nChar) {
 	case 'a':
@@ -127,6 +160,9 @@ void CMainFrame::OnChar(UINT nChar, UINT nRep, UINT nFlags)  {
 		break;
 	case 'd':
 		p1.SetAngle(p1.GetAngle()+3);
+		break;
+	case 's':
+		Fire(p1);
 		break;
 	case 'x':
 		p1.SetAngle(0);
@@ -136,6 +172,9 @@ void CMainFrame::OnChar(UINT nChar, UINT nRep, UINT nFlags)  {
 		break;
 	case 'l':
 		p2.SetAngle(p2.GetAngle()+3);
+		break;
+	case 'k':
+		Fire(p2);
 		break;
 	case ',':
 		p2.SetAngle(0);

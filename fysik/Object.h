@@ -16,6 +16,7 @@ public:
 	~Object();
 
 	Vector getPosition() const;
+	Vector getVelocity() const;
 	double getRadius() const;
 	Vector getResultantForce() const;
 	std::string getName() const;

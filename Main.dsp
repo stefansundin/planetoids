@@ -104,6 +104,14 @@ SOURCE=.\fysik\millitime.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Missile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Missile.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\MyWinApp.cpp
 # End Source File
 # Begin Source File
