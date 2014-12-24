@@ -53,6 +53,7 @@ void CMainFrame::OnPaint() {
 
 	dc.SetTextColor(WHITE_BRUSH);
 
+	CString str;
 	CRect window;
 	GetClientRect(&window);
 	const int middle_x=window.right/2;
@@ -66,8 +67,24 @@ void CMainFrame::OnPaint() {
 	CBrush sunBrush;
 	sunBrush.CreateSolidBrush(RGB(255,255,0));
 
+	CFont font;
+	font.CreatePointFont(80,"Arial");
+	dc.SelectObject(font);
+
 	objects = engine.getObjectsPointer();
 	for (int i=0; i < objects->size(); i++) {
+		Object *planet=objects->at(i);
+		string name=planet->getName();
+		if (name != "Sun" && name != "Missile") {
+			int planet_x=planet->getPosition().getX();
+			int planet_y=planet->getPosition().getY();
+			int radius=planet->getRadius();
+
+			//dc.TextOut(middle_x+planet_x-radius-10,middle_y+planet_y+radius+5,name.c_str());
+			dc.DrawText(name.c_str(), -1, CRect(middle_x+planet_x-3*radius,middle_y+planet_y+radius+2,middle_x+planet_x+3*radius,middle_y+planet_y+radius+100), DT_SINGLELINE|DT_CENTER);
+		}
+	}
+	for (i=0; i < objects->size(); i++) {
 		Object *planet=objects->at(i);
 		int planet_x=planet->getPosition().getX();
 		int planet_y=planet->getPosition().getY();
@@ -130,7 +147,6 @@ void CMainFrame::OnPaint() {
 		}
 	}
 
-	CString str;
 	str.Format("Player 1: %d", p1.GetMissiles());
 	dc.TextOut(30,5,str);
 	str.Format("Player 2: %d", p2.GetMissiles());

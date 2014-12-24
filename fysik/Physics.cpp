@@ -77,10 +77,28 @@ void Physics::doPhysics()
 			{
 				if (m_objects->at(i)->collide(m_objects->at(j)))
 				{
-					std::cout
+					std::vector<Object*>::iterator del;
+					if (m_objects->at(i)->getName() == "Missile"
+					 && m_objects->at(j)->getName() == "Missile") {
+						del=m_objects->begin()+i;
+						m_objects->erase(del);
+						del=m_objects->begin()+j;
+						m_objects->erase(del);
+					}
+					if (m_objects->at(i)->getName() == "Missile") {
+						m_objects->at(j)->updateRadius(m_objects->at(j)->getRadius()-1);
+						del=m_objects->begin()+i;
+						m_objects->erase(del);
+					}
+					if (m_objects->at(j)->getName() == "Missile") {
+						m_objects->at(i)->updateRadius(m_objects->at(i)->getRadius()-1);
+						del=m_objects->begin()+j;
+						m_objects->erase(del);
+					}
+					/*std::cout
 						<< "BOOM! " << m_objects->at(i)->getName()
 						<< " krockar med " << m_objects->at(j)->getName()
-						<< ".\n";
+						<< ".\n";*/
 				}
 			}
 		}

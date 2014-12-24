@@ -26,6 +26,8 @@ public:
 	void updateVelocity(std::vector<Object*> *p_others, double p_time_step);
 	void updatePosition(double p_time_step);
 
+	void updateRadius(double p_radius);
+
 protected:
 	Vector m_position;
 	Vector m_velocity;

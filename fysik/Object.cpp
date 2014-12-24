@@ -90,3 +90,8 @@ void Object::updatePosition(double p_time_step)
 {
 	m_position += m_velocity*(p_time_step/1000);
 }
+
+void Object::updateRadius(double p_radius)
+{
+	m_radius = p_radius;
+}

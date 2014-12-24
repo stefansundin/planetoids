@@ -46,7 +46,7 @@ void Player::DecreaseMissile() {
 
 void Player::Fire() {
 	if (Planet != NULL && Missiles > 0 && millitime() >= LastFired+1000) {
-		engine->addObject(new Object(Planet->getPosition(), Planet->getVelocity()+Vector(50*cos(Angle*pi/180),50*sin(Angle*pi/180)), 3, 10, "Missile"));
+		engine->addObject(new Object(Planet->getPosition()+Vector(Planet->getRadius()*cos(Angle*pi/180)+3*cos(Angle*pi/180),Planet->getRadius()*sin(Angle*pi/180)+3*sin(Angle*pi/180)), Planet->getVelocity()+Vector(50*cos(Angle*pi/180),50*sin(Angle*pi/180)), 3, 10, "Missile"));
 		LastFired=millitime();
 		Missiles--;
 	}

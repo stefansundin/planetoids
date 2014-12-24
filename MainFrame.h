@@ -1,7 +1,6 @@
 #include <afxwin.h>
 #include "fysik/Physics.h"
 #include "Player.h"
-#include "Missile.h"
 #include <iostream>
 
 using namespace std;
