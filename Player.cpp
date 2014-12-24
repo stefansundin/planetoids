@@ -7,12 +7,11 @@ const double pi=3.14159265358979323846;
 using namespace std;
 
 Player::Player() {
-	Planet=NULL;
-	HP=100;
-	Angle=0;
-	Missiles=1000;
-	SelectedMissile=0;
-	LastFired=0;
+	planet=NULL;
+	hp=100;
+	angle=0;
+	missiles=1000;
+	cooldown=0;
 	engine=NULL;
 }
 
@@ -21,59 +20,51 @@ void Player::SetEngine(Physics *e) {
 }
 
 void Player::SetPlanet(Object *p) {
-	Planet=p;
+	planet=p;
 }
 
 void Player::SetHP(int h) {
-	HP=h;
+	hp=h;
 }
 
 void Player::SetAngle(int a) {
 	if (GetPlanet() != NULL) {
-		Angle=a%360;
+		angle=a%360;
 	}
 }
 
-void Player::SelectMissile(int s) {
-	SelectedMissile=s;
-}
-
 void Player::DecreaseMissile() {
-	if (Missiles > 0) {
-		Missiles--;
+	if (missiles > 0) {
+		missiles--;
 	}
 }
 
 void Player::Fire() {
-	if (Planet != NULL && Missiles > 0 && millitime() >= LastFired+2000) {
-		Vector pos(Planet->getPosition()+Vector(
-			Planet->getRadius()*cos(Angle*pi/180*-1)+5*cos(Angle*pi/180*-1),
-			Planet->getRadius()*sin(Angle*pi/180*-1)+5*sin(Angle*pi/180*-1)));
-		Vector vel(Planet->getVelocity()+Vector(
-			45*cos(Angle*pi/180*-1),
-			45*sin(Angle*pi/180*-1)));
-		engine->addObject(new Object(pos,vel, 5, 10, "Missile"));
-		LastFired=millitime();
-		Missiles--;
+	if (planet != NULL && missiles > 0 && millitime() >= cooldown+2000) {
+		Vector pos(planet->getPosition()+Vector(
+			planet->getRadius()*cos(angle*pi/180*-1)+5*cos(angle*pi/180*-1),
+			planet->getRadius()*sin(angle*pi/180*-1)+5*sin(angle*pi/180*-1)));
+		Vector vel(planet->getVelocity()+Vector(
+			100000*cos(angle*pi/180*-1),
+			100000*sin(angle*pi/180*-1)));
+		engine->addObject(new Object(pos,vel, 5000000, 10000, "Missile"));
+		cooldown=millitime();
+		missiles--;
 	}
 }
 
 Object *Player::GetPlanet() {
-	return Planet;
+	return planet;
 }
 
 int Player::GetHP() {
-	return HP;
+	return hp;
 }
 
 int Player::GetAngle() {
-	return Angle;
-}
-
-int Player::GetSelectedMissile() {
-	return SelectedMissile;
+	return angle;
 }
 
 int Player::GetMissiles() {
-	return Missiles;
+	return missiles;
 }

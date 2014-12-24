@@ -6,13 +6,12 @@
 
 class Player {
 private:
-	Object *Planet;
+	Object *planet;
 	Physics *engine;
-	int HP;
-	int Angle;
-	int Missiles;
-	int SelectedMissile;
-	int LastFired;
+	int hp;
+	int angle;
+	int missiles;
+	int cooldown;
 	
 public:
 	Player();
@@ -21,14 +20,12 @@ public:
 	void SetPlanet(Object *p);
 	void SetHP(int h);
 	void SetAngle(int a);
-	void SelectMissile(int s);
 	void DecreaseMissile();
 	void Fire();
 
 	Object *GetPlanet();
 	int GetHP();
 	int GetAngle();
-	int GetSelectedMissile();
 	int GetMissiles();
 };
 

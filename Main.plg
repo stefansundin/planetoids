@@ -10,6 +10,7 @@ Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSPCE.tmp" with cont
 [
 /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "_AFXDLL" /Fp"Debug/Main.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
 "C:\Stuff\School\Programmering C\MFC\Planetoids\MainFrame.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\fysik\Physics.cpp"
 ]
 Creating command line "cl.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSPCE.tmp" 
 Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSPCF.tmp" with contents
@@ -28,6 +29,7 @@ Creating command line "link.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSPCF.tmp"
 <h3>Output Window</h3>
 Compiling...
 MainFrame.cpp
+Physics.cpp
 Linking...
 
 

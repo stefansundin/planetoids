@@ -61,18 +61,18 @@ void Physics::doPhysics()
 {
 	int i, j;
 	double timestep = millitime()-m_at_last_physics;
-	timestep+=1000000;
+	timestep+=100000;
 	std::vector<Object*> destroy;
 	//printf("timestep: (%l)\n", timestep);
 	//std::cout << "timestep: (" << timestep << ")\n";
 	for(i = 0; i < m_objects->size(); i++)
 	{
 		m_objects->at(i)->updatePosition(timestep);
-		if (m_objects->at(i)->getName() == "Missile"
+		/*if (m_objects->at(i)->getName() == "Missile"
 		 && (m_objects->at(i)->getPosition() < Vector(-600,-600)
 		 || m_objects->at(i)->getPosition() > Vector(600,600))) {
 			destroy.push_back(m_objects->at(i));
-		}
+		}*/
 	}
 
 	for(i = 0; i < m_objects->size(); i++)
@@ -83,10 +83,9 @@ void Physics::doPhysics()
 
 	for(i = 0; i < m_objects->size(); i++)
 	{
-		for(j = 0; j < m_objects->size(); j++)
+		for(j = i+1; j < m_objects->size(); j++)
 		{
-			if (m_objects->at(i) != m_objects->at(j))
-			{
+			//if (m_objects->at(i) != m_objects->at(j))			{
 				if (m_objects->at(i)->collide(m_objects->at(j)))
 				{
 					std::string name1=m_objects->at(i)->getName();
@@ -103,6 +102,7 @@ void Physics::doPhysics()
 					else if (name1 == "Missile" || name2 == "Missile") {
 						int missile=(name1=="Missile"?i:j);
 						int planet=(missile==i?j:i);
+						//Decrease HP here
 						m_objects->at(planet)->updateRadius(m_objects->at(planet)->getRadius()*0.9);
 						//m_objects->at(planet)->updateMass(m_objects->at(planet)->getMass()*0.9);
 						destroy.push_back(m_objects->at(missile));
@@ -130,11 +130,11 @@ void Physics::doPhysics()
 						<< " krockar med " << m_objects->at(j)->getName()
 						<< ".\n";*/
 				}
-			}
+			//}
 		}
 	}
 
-	for (i=destroy.size()-1; i > 0; i--) {
+	for (i=0; i < destroy.size(); i++) {
 		removeObject(destroy.at(i));
 	}
 

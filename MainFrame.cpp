@@ -15,6 +15,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_RBUTTONDOWN()
 	ON_WM_VSCROLL()
+	ON_WM_SIZE()
 	ON_COMMAND(IDM_MENU_RESET,OnMenuReset)
 	ON_COMMAND(IDM_MENU_OPEN,OnMenuOpen)
 	ON_COMMAND(IDM_MENU_ADD,OnMenuAdd)
@@ -28,7 +29,7 @@ CMainFrame::CMainFrame() {
 	memset(keys,0,sizeof(keys));
 	start=false;
 	follow=NULL;
-	scale=1;
+	stdscale=scale=1;
 	MousePos=CPoint(0,0);
 
 	p1.SetEngine(&engine);
@@ -48,9 +49,9 @@ CMainFrame::CMainFrame() {
 	zoom.Create(WS_CHILD |WS_VISIBLE |TBS_VERT |TBS_RIGHT,
 		CRect(CPoint(0,0),CSize(30,window.bottom)),
 		this, IDC_SLH_ZOOM);
-	zoom.SetRange(1,1520977010);	zoom.SetTicFreq(1);
+	zoom.SetRange(1,152097700);	zoom.SetTicFreq(1);
 	zoom.SetPos(0);
-	zoom.SetLineSize(1);	zoom.SetPageSize(1);
+	zoom.SetLineSize(1);	zoom.SetPageSize(50);
 
 	LoadSystem("system.txt");
 	objects = engine.getObjectsPointer();
@@ -101,21 +102,29 @@ void CMainFrame::OnMenuSave() {
 }
 
 void CMainFrame::OnMenuBlackhole() {
-	engine.addObject(new Object(Vector(200,200), Vector(-3,-3), 13, 1e13, "Blackhole"));
+	engine.addObject(new Object(Vector(650e6*cos(rand()%360*pi/180),650e6*sin(rand()%360*pi/180)), Vector(-3,-3), 33e6, 5e28, "Blackhole"));
 }
 
 void CMainFrame::LoadSystem(string fn) {
 	FILE *file;
 	if ((file=fopen(fn.c_str(),"rb")) != NULL) {
 		fscanf(file,"%d",&scale);
-		float x,y,velx,vely,r,m;
+		stdscale=scale;
+		zoom.SetPos(scale);
+		float pos,vel,r,m;
 		char name[100];
-		while (fscanf(file,"%f\t%f\t%f\t%f\t%f\t%f\t%s",&x,&y,&velx,&vely,&r,&m,name) != EOF) {
+		while (fscanf(file,"%f\t%f\t%f\t%f\t%s",&pos,&vel,&r,&m,name) != EOF) {
 			for (char *c=name; *c != '\0'; c++) {
 				if (*c == '_') {
 					*c=' ';
 				}
 			}
+			int angle=rand()%360;
+			float x,y,velx,vely;
+			x=pos*cos(angle*pi/180);
+			y=pos*sin(angle*pi/180);
+			velx=vel*cos((90+angle)*pi/180);
+			vely=vel*sin((90+angle)*pi/180);
 			engine.addObject(new Object(Vector(x,y), Vector(velx,vely), r, m, name));
 		}
 		fclose(file);
@@ -125,7 +134,8 @@ void CMainFrame::LoadSystem(string fn) {
 void CMainFrame::SaveSystem(string fn) {
 	FILE *file;
 	if ((file=fopen(fn.c_str(),"wb")) != NULL) {
-		fprintf(file,"%f\n",scale);
+		fprintf(file,"%d\n",scale);
+		stdscale=scale;
 		objects = engine.getObjectsPointer();
 		for (int i=0; i < objects->size(); i++) {
 			Object *p=objects->at(i);
@@ -138,7 +148,10 @@ void CMainFrame::SaveSystem(string fn) {
 					*c='_';
 				}
 			}
-			fprintf(file,"%f\t%f\t%f\t%f\t%f\t%f\t%s\n",pos.getX(),pos.getY(),vel.getX(),vel.getY(),p->getRadius(),p->getMass(),name);
+			float position,velocity;
+			position=sqrt(pow(pos.getX(),2)+pow(pos.getY(),2));
+			velocity=sqrt(pow(vel.getX(),2)+pow(vel.getY(),2));
+			fprintf(file,"%f\t%f\t%f\t%f\t%s\n",position,velocity,p->getRadius(),p->getMass(),name);
 		}
 		fclose(file);
 	}
@@ -280,11 +293,11 @@ void CMainFrame::OnPaint() {
 	}
 
 	dc.SetTextAlign(TA_LEFT);
-	str.Format("Player 1: %d", p1.GetMissiles());
+	str.Format("Player 1: %d HP    %d Missiles", p1.GetHP(), p1.GetMissiles());
 	dc.TextOut(40,10,str);
-	str.Format("Player 2: %d", p2.GetMissiles());
+	str.Format("Player 2: %d HP    %d Missiles", p2.GetHP(), p2.GetMissiles());
 	dc.TextOut(40,25,str);
-	str.Format("Num objects: %d", objects->size());
+	str.Format("%d objects", objects->size());
 	dc.TextOut(40,40,str);
 	str.Format("Scale: %d", scale);
 	dc.TextOut(40,55,str);
@@ -297,16 +310,16 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 		engine.doPhysics();
 		angle=(angle-1)%360;
 		if (keys['A']) {
-			p1.SetAngle(p1.GetAngle()-5);
+			p1.SetAngle(p1.GetAngle()-(keys[16]?1:5));
 		}
 		if (keys['D']) {
-			p1.SetAngle(p1.GetAngle()+5);
+			p1.SetAngle(p1.GetAngle()+(keys[16]?1:5));
 		}
 		if (keys['J']) {
-			p2.SetAngle(p2.GetAngle()-5);
+			p2.SetAngle(p2.GetAngle()-(keys[16]?1:5));
 		}
 		if (keys['L']) {
-			p2.SetAngle(p2.GetAngle()+5);
+			p2.SetAngle(p2.GetAngle()+(keys[16]?1:5));
 		}
 		if (keys['W']) {
 			p1.Fire();
@@ -329,27 +342,34 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 		if (keys['0']) {
 			follow=NULL;
 			adjustview=Vector(0,0);
-			scale=1;
+			scale=stdscale;
+			zoom.SetPos(scale);
 		}
 		if (keys['Z']) {
 			scale++;
+			zoom.SetPos(scale);
 		}
 		if (keys['X']) {
 			if (scale != 1) {
 				scale--;
+				zoom.SetPos(scale);
 			}
 		}
 		if (keys['C']) {
 			scale+=1000;
+			zoom.SetPos(scale);
 		}
 		if (keys['V']) {
 			scale=(scale-1000<1?1:scale-1000);
+			zoom.SetPos(scale);
 		}
 		if (keys['B']) {
 			scale+=50000;
+			zoom.SetPos(scale);
 		}
 		if (keys['N']) {
 			scale=(scale-50000<1?1:scale-50000);
+			zoom.SetPos(scale);
 		}
 		for (int i=0; i < objects->size(); i++) {
 			Object *planet=objects->at(i);
@@ -448,8 +468,15 @@ void CMainFrame::OnRButtonDown(UINT nFlags, CPoint pt) {
 void CMainFrame::OnVScroll(UINT nSBCode, UINT nPos, CWnd *pSlider) {
 	CSliderCtrl *pSld;
 	pSld=(CSliderCtrl*)pSlider;
-	//MessageBox("kaka","kaka");
 	scale=pSld->GetPos();
-	scale=(scale==1?1:scale);
+	//scale=(scale==1?1:scale);
 	this->SetFocus();
+}
+
+void CMainFrame::OnSize() {
+/*
+	CRect window;
+	GetClientRect(&window);
+	zoom.GetBuddy()->SetWindowPos(&wndTop,200,200,200,200,SWP_SHOWWINDOW);
+*/
 }

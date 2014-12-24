@@ -22,8 +22,8 @@ private:
 	CPoint MousePos;
 	bool start;
 	char keys[255];
-	__int64 angle;
-	int scale;
+	int angle;
+	__int64 scale, stdscale;
 	Object *follow;
 	Vector adjustview;
 
@@ -47,6 +47,7 @@ public:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint pt);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint pt);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CWnd *pSlider);
+	afx_msg void OnSize();
 	
 	DECLARE_MESSAGE_MAP();
 };
