@@ -20,6 +20,7 @@ static Player p2;
 static int winner;
 static bool start;
 static vector<Animation> animations;
+static __int64 scale;
 
 class CMainFrame: public CFrameWnd {
 private:
@@ -32,7 +33,8 @@ private:
 	char keys[255];
 	int angle;
 	int timestep;
-	__int64 scale, stdscale;
+	int nuke;
+	__int64 stdscale;
 	Object *follow;
 	Vector adjustview;
 

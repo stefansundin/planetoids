@@ -24,12 +24,6 @@ public:
 	bool collide(const Object *p_other);
 	void updateForce(std::vector<Object*> *p_others);
 	void updatePosition(double p_time_step);
-	
-	//hax
-	Vector getVelocity() const;
-	double getMass() const;
-	void updateRadius(double p_radius);
-	void updateMass(double p_mass);
 
 protected:
 	Vector m_position;

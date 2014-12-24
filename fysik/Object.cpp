@@ -82,25 +82,3 @@ void Object::updatePosition(double p_time_step)
 
 	m_position += old_velocity*(p_time_step/1000) + acceleration*(p_time_step/1000)*(p_time_step/1000)*0.5;
 }
-
-//hax
-
-Vector Object::getVelocity() const
-{
-	return m_velocity;
-}
-
-double Object::getMass() const
-{
-	return m_mass;
-}
-
-void Object::updateRadius(double p_radius)
-{
-	m_radius=(p_radius<3?3:p_radius);
-}
-
-void Object::updateMass(double p_mass)
-{
-	m_mass = p_mass;
-}

@@ -126,6 +126,14 @@ SOURCE=.\fysik\Object.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\fysik\ObjectX.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\fysik\ObjectX.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\fysik\Physics.cpp
 # End Source File
 # Begin Source File
