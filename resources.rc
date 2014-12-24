@@ -1,0 +1,17 @@
+#include "resources.h"
+
+icon ICON icon.ico
+
+IDR_MENU MENU DISCARDABLE 
+BEGIN
+	POPUP "&System"
+	BEGIN
+		MENUITEM "&Open system", IDM_MENU_OPEN
+		MENUITEM "&Add system", IDM_MENU_ADD
+		MENUITEM "&Save system", IDM_MENU_SAVE
+	END
+	POPUP "&Add"
+	BEGIN
+		MENUITEM "Add &blackhole", IDM_MENU_BLACKHOLE
+	END
+END

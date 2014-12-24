@@ -15,6 +15,7 @@ public:
 
 	bool addObject(Object *p_object);
 	bool removeObject(Object *p_object);
+	void clear();
 	void doPhysics();
 
 	std::vector<Object*>* getObjectsPointer() const;	//use this to get the objects for rendering

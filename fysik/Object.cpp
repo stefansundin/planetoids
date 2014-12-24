@@ -42,6 +42,11 @@ std::string Object::getName() const
 	return m_name;
 }
 
+double Object::getMass() const
+{
+	return m_mass;
+}
+
 
 const Vector Object::getGForce(const Object *p_other)
 {
@@ -93,5 +98,10 @@ void Object::updatePosition(double p_time_step)
 
 void Object::updateRadius(double p_radius)
 {
-	m_radius = p_radius;
+	m_radius=(p_radius<3?3:p_radius);
+}
+
+void Object::updateMass(double p_mass)
+{
+	m_mass = p_mass;
 }

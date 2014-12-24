@@ -2,10 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
-
-#define IDC_BTN_INC 199
-#define IDC_BTN_NUM 200
-#define IDC_BTN_DEC 201
+#include <fstream>
 
 const double pi=3.14159265358979323846;
 
@@ -16,6 +13,11 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_KEYUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
+	ON_WM_RBUTTONDOWN()
+	ON_COMMAND(IDM_MENU_OPEN,OnMenuOpen)
+	ON_COMMAND(IDM_MENU_ADD,OnMenuAdd)
+	ON_COMMAND(IDM_MENU_SAVE,OnMenuSave)
+	ON_COMMAND(IDM_MENU_BLACKHOLE,OnMenuBlackhole)
 END_MESSAGE_MAP()
 
 CMainFrame::CMainFrame() {
@@ -23,23 +25,22 @@ CMainFrame::CMainFrame() {
 
 	memset(keys,0,sizeof(keys));
 	start=false;
+	follow=NULL;
 	MousePos=CPoint(0,0);
 
 	p1.SetEngine(&engine);
 	p2.SetEngine(&engine);
 
-	engine.addObject(new Object(Vector(-50,0), Vector(0,10), 20, 1e13, "Sun"));
-	engine.addObject(new Object(Vector(50,0), Vector(0,-10), 20, 1e13, "Sun"));
-	engine.addObject(new Object(Vector(250,0), Vector(0,25), 15, 6e5, "Arakkis"));
-	engine.addObject(new Object(Vector(-350,0), Vector(0,25), 10, 1e5, "Tatooine"));
-	engine.addObject(new Object(Vector(0,-200), Vector(-20,0), 8, 6e5, "Earth"));
-	engine.addObject(new Object(Vector(-100,250), Vector(-23,0), 12, 6e5, "Vulcan"));
-	engine.addObject(new Object(Vector(100,-150), Vector(24,0), 10, 1e5, "Lanthea"));
-//	engine.addObject(new Object(Vector(-75,70), Vector(17,20), 10, 1e5, "Rigel IV"));
-
-	objects = engine.getObjectsPointer();
-
 	Create(NULL,"Planetoids",WS_OVERLAPPEDWINDOW,CRect(20,30,900,650));
+	menu.LoadMenu(IDR_MENU);
+	SetMenu(&menu);
+
+	HINSTANCE hInst=AfxGetInstanceHandle();
+	HICON icon=LoadIcon(hInst,"icon");
+	SetIcon(icon,FALSE);
+
+	LoadSystem("system.txt");
+	objects = engine.getObjectsPointer();
 
 	SetTimer(UPDATE_TIMER, 80, NULL);
 }
@@ -48,16 +49,94 @@ CMainFrame::~CMainFrame() {
 	KillTimer(UPDATE_TIMER);
 }
 
+void CMainFrame::OnMenuOpen() {
+	CFileDialog FileDlg(TRUE, ".txt", NULL, 0, "Planetoid Systems (*.txt)|*.txt|All Files (*.*)|*.*||");
+	if( FileDlg.DoModal() == IDOK )
+	{
+		char file[255];
+		strcpy(file, FileDlg.GetFileName());
+		engine.clear();
+		LoadSystem(file);
+	}
+}
+
+void CMainFrame::OnMenuAdd() {
+	CFileDialog FileDlg(TRUE, ".txt", NULL, 0, "Planetoid Systems (*.txt)|*.txt|All Files (*.*)|*.*||");
+	if( FileDlg.DoModal() == IDOK )
+	{
+		char file[255];
+		strcpy(file, FileDlg.GetFileName());
+		LoadSystem(file);
+	}
+}
+
+void CMainFrame::OnMenuSave() {
+	CFileDialog FileDlg(FALSE, ".txt", NULL, 0, "Planetoid Systems (*.txt)|*.txt|All Files (*.*)|*.*||");
+	if( FileDlg.DoModal() == IDOK )
+	{
+		char file[255];
+		strcpy(file, FileDlg.GetFileName());
+		SaveSystem(file);
+	}
+}
+
+void CMainFrame::OnMenuBlackhole() {
+	engine.addObject(new Object(Vector(200,200), Vector(-3,-3), 13, 1e13, "Blackhole"));
+}
+
+void CMainFrame::LoadSystem(string fn) {
+	FILE *file;
+	if ((file=fopen(fn.c_str(),"rb")) != NULL) {
+		float x,y,velx,vely,r,m;
+		char name[100];
+		while (fscanf(file,"%f\t%f\t%f\t%f\t%f\t%f\t%s",&x,&y,&velx,&vely,&r,&m,name) != EOF) {
+			for (char *c=name; *c != '\0'; c++) {
+				if (*c == '_') {
+					*c=' ';
+				}
+			}
+			engine.addObject(new Object(Vector(x,y), Vector(velx,vely), r, m, name));
+		}
+		fclose(file);
+	}
+}
+
+void CMainFrame::SaveSystem(string fn) {
+	FILE *file;
+	if ((file=fopen(fn.c_str(),"wb")) != NULL) {
+		objects = engine.getObjectsPointer();
+		for (int i=0; i < objects->size(); i++) {
+			Object *p=objects->at(i);
+			Vector pos=p->getPosition();
+			Vector vel=p->getVelocity();
+			char name[100];
+			strcpy(name,p->getName().c_str());
+			for (char *c=name; *c != '\0'; c++) {
+				if (*c == ' ') {
+					*c='_';
+				}
+			}
+			fprintf(file,"%f\t%f\t%f\t%f\t%f\t%f\t%s\n",pos.getX(),pos.getY(),vel.getX(),vel.getY(),p->getRadius(),p->getMass(),name);
+		}
+		fclose(file);
+	}
+}
+
 void CMainFrame::OnPaint() {
 	CPaintDC dc(this);
 
+	//dc.SetTextAlign(TA_CENTER);
 	dc.SetTextColor(WHITE_BRUSH);
 
 	CString str;
 	CRect window;
 	GetClientRect(&window);
-	const int middle_x=window.right/2;
-	const int middle_y=window.bottom/2;
+	int middle_x=window.right/2-adjustview.getX();
+	int middle_y=window.bottom/2-adjustview.getY();
+	if (follow != NULL) {
+		middle_x-=follow->getPosition().getX();
+		middle_y-=follow->getPosition().getY();
+	}
 
 	CBrush brush;
 	brush.CreateSolidBrush(RGB(200,200,200));
@@ -75,13 +154,13 @@ void CMainFrame::OnPaint() {
 	for (int i=0; i < objects->size(); i++) {
 		Object *planet=objects->at(i);
 		string name=planet->getName();
-		if (name != "Sun" && name != "Missile") {
+		if (name != "Sun" && name != "Missile" && name != "Blackhole") {
 			int planet_x=planet->getPosition().getX();
 			int planet_y=planet->getPosition().getY();
 			int radius=planet->getRadius();
 
 			//dc.TextOut(middle_x+planet_x-radius-10,middle_y+planet_y+radius+5,name.c_str());
-			dc.DrawText(name.c_str(), -1, CRect(middle_x+planet_x-3*radius,middle_y+planet_y+radius+2,middle_x+planet_x+3*radius,middle_y+planet_y+radius+100), DT_SINGLELINE|DT_CENTER);
+			dc.DrawText(name.c_str(), -1, CRect(middle_x+planet_x-30,middle_y+planet_y+radius+2,middle_x+planet_x+30,middle_y+planet_y+radius+100), DT_SINGLELINE|DT_CENTER);
 		}
 	}
 	for (i=0; i < objects->size(); i++) {
@@ -125,7 +204,15 @@ void CMainFrame::OnPaint() {
 			}
 		}
 
-		if (planet->getName() == "Sun") {
+		if (planet->getName() == "Blackhole") {
+			for (int i=0; i < 18; i++) {
+				dc.MoveTo(CPoint(middle_x+planet_x+radius*cos((angle+i*20)%360*pi/180),middle_y+planet_y+radius*sin((angle+i*20)%360*pi/180)));
+				int randlen=rand()%5;
+				dc.LineTo(CPoint(middle_x+planet_x+(radius+7)*cos((angle+i*20+30+randlen)%360*pi/180),middle_y+planet_y+(radius+7)*sin((angle+i*20+30+randlen)%360*pi/180)));
+			}
+			dc.SelectStockObject(BLACK_BRUSH);
+		}
+		else if (planet->getName() == "Sun") {
 			for (int i=0; i < 36; i++) {
 				dc.MoveTo(CPoint(middle_x+planet_x,middle_y+planet_y));
 				int randlen=rand()%10;
@@ -140,10 +227,10 @@ void CMainFrame::OnPaint() {
 
 	if (!start) {
 		if (p1.GetPlanet() == NULL) {
-			dc.TextOut(middle_x-95,window.bottom-30,"Player 1 - Choose your planet");
+			dc.DrawText("Player 1 - Choose your planet", -1, CRect(0,10,window.right,100), DT_SINGLELINE|DT_CENTER);
 		}
 		else if (p2.GetPlanet() == NULL) {
-			dc.TextOut(middle_x-95,window.bottom-30,"Player 2 - Choose your planet");
+			dc.DrawText("Player 2 - Choose your planet", -1, CRect(0,10,window.right,100), DT_SINGLELINE|DT_CENTER);
 		}
 	}
 
@@ -160,7 +247,7 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 
 	if (nIDEvent == UPDATE_TIMER) {
 		engine.doPhysics();
-		angle=(angle+1)%360;
+		angle=(angle-1)%360;
 		if (keys['A']) {
 			p1.SetAngle(p1.GetAngle()-5);
 		}
@@ -179,6 +266,27 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 		if (keys['I']) {
 			p2.Fire();
 		}
+		if (keys[37]) { //left
+			adjustview+=Vector(10,0);
+		}
+		if (keys[38]) { //up
+			adjustview+=Vector(0,10);
+		}
+		if (keys[39]) { //right
+			adjustview+=Vector(-10,0);
+		}
+		if (keys[40]) { //down
+			adjustview+=Vector(0,-10);
+		}
+		if (keys['0']) {
+			adjustview=Vector(0,0);
+		}
+		for (int i=0; i < objects->size(); i++) {
+			Object *planet=objects->at(i);
+			if (planet->getName() == "Blackhole") {
+				planet->updateMass(planet->getMass()*1.01);
+			}
+		}
 		Invalidate();
 	}
 	CWnd::OnTimer(nIDEvent);
@@ -186,6 +294,11 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 
 void CMainFrame::OnKeyDown(UINT nChar, UINT nRep, UINT nFlags)  {
 	keys[nChar]=1;
+/*
+	char text[100];
+	sprintf(text,"nChar: %d", nChar);
+	MessageBox(text,"char");
+*/
 }
 
 void CMainFrame::OnKeyUp(UINT nChar, UINT nRep, UINT nFlags)  {
@@ -200,8 +313,12 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 	if (!start) {
 		CRect window;
 		GetClientRect(&window);
-		const int middle_x=window.right/2;
-		const int middle_y=window.bottom/2;
+		int middle_x=window.right/2-adjustview.getX();
+		int middle_y=window.bottom/2-adjustview.getY();
+		if (follow != NULL) {
+			middle_x-=follow->getPosition().getX();
+			middle_y-=follow->getPosition().getY();
+		}
 
 		for (int i=0; i < objects->size(); i++) {
 			Object *planet=objects->at(i);
@@ -224,6 +341,31 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 					return;
 				}
 			}
+		}
+	}
+}
+
+void CMainFrame::OnRButtonDown(UINT nFlags, CPoint pt) {
+	CRect window;
+	GetClientRect(&window);
+	int middle_x=window.right/2-adjustview.getX();
+	int middle_y=window.bottom/2-adjustview.getY();
+	if (follow != NULL) {
+		middle_x-=follow->getPosition().getX();
+		middle_y-=follow->getPosition().getY();
+	}
+	for (int i=0; i < objects->size(); i++) {
+		Object *planet=objects->at(i);
+		int planet_x=planet->getPosition().getX();
+		int planet_y=planet->getPosition().getY();
+		int radius=planet->getRadius();
+
+		CRect planetrect(middle_x+planet_x-radius,middle_y+planet_y-radius,
+			middle_x+planet_x+radius,middle_y+planet_y+radius);
+
+		if (planetrect.PtInRect(pt)) {
+			follow=planet;
+			return;
 		}
 	}
 }
