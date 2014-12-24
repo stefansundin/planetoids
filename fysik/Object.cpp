@@ -4,7 +4,7 @@ Object::Object()
 {
 	m_position = Vector(0,0);
 	m_velocity = Vector(0,0);
-	m_resultant_force = Vector(0,0);
+	m_resulting_force = Vector(0,0);
 	m_radius = 0.0;
 	m_mass = 0.0;
 	m_name = "Noname";
@@ -25,26 +25,17 @@ Vector Object::getPosition() const
 {
 	return m_position;
 }
-Vector Object::getVelocity() const
-{
-	return m_velocity;
-}
 double Object::getRadius() const
 {
 	return m_radius;
 }
-Vector Object::getResultantForce() const
+Vector Object::getResultingForce() const
 {
-	return m_resultant_force;
+	return m_resulting_force;
 }
 std::string Object::getName() const
 {
 	return m_name;
-}
-
-double Object::getMass() const
-{
-	return m_mass;
 }
 
 
@@ -55,13 +46,8 @@ const Vector Object::getGForce(const Object *p_other)
 	//         r*r
 
 	Vector distance = p_other->m_position - m_position;
-	double force;
-	if(distance.getLength() == 0){
-		force = 1;
-	}
-	else{
-		force = ( G * (m_mass * p_other->m_mass) ) / ( distance.getLength() * distance.getLength() );
-	}
+	double force = (G * (m_mass * p_other->m_mass)) / (distance.getLength() * distance.getLength());
+	distance.makeUnit();
 
 	return distance * force;
 }
@@ -74,30 +60,39 @@ bool Object::collide(const Object *p_other)
 	return distance <= m_radius + p_other->m_radius;
 }
 
-void Object::updateVelocity(std::vector<Object*> *p_objects, double p_time_step)
+void Object::updateForce(std::vector<Object*> *p_objects)
 {
-	Vector force = Vector(0,0);
+	m_resulting_force = Vector(0,0);
 	for(int i = 0; i < p_objects->size(); i++)
 	{
 		if(this != p_objects->at(i))
 		{
-			force += getGForce(p_objects->at(i));
+			m_resulting_force += getGForce(p_objects->at(i));
 		}
 	}
-
-	m_resultant_force = force;				//save the resultant force for easy rendering of it
-	Vector acceleration = force/m_mass;
-	Vector position = acceleration*0.5*(p_time_step/1000);
-	m_velocity += position;
-}
-
-void Object::setVelocity(Vector p_velocity) {
-	m_velocity=p_velocity;
 }
 
 void Object::updatePosition(double p_time_step)
 {
-	m_position += m_velocity*(p_time_step/1000);
+	Vector old_velocity = m_velocity;
+
+	Vector acceleration = m_resulting_force/m_mass;
+	Vector diff = acceleration*(p_time_step/1000);
+	m_velocity += diff;
+
+	m_position += old_velocity*(p_time_step/1000) + acceleration*(p_time_step/1000)*(p_time_step/1000)*0.5;
+}
+
+//hax
+
+Vector Object::getVelocity() const
+{
+	return m_velocity;
+}
+
+double Object::getMass() const
+{
+	return m_mass;
 }
 
 void Object::updateRadius(double p_radius)
