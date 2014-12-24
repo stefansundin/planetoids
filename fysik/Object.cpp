@@ -91,6 +91,10 @@ void Object::updateVelocity(std::vector<Object*> *p_objects, double p_time_step)
 	m_velocity += position;
 }
 
+void Object::setVelocity(Vector p_velocity) {
+	m_velocity=p_velocity;
+}
+
 void Object::updatePosition(double p_time_step)
 {
 	m_position += m_velocity*(p_time_step/1000);

@@ -26,6 +26,7 @@ public:
 	const Vector getGForce(const Object *p_other);
 	bool collide(const Object *p_other);
 	void updateVelocity(std::vector<Object*> *p_others, double p_time_step);
+	void setVelocity(Vector p_velocity);
 	void updatePosition(double p_time_step);
 
 	void updateRadius(double p_radius);

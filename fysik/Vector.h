@@ -24,6 +24,7 @@ public:
 	const Vector operator/(double p_scalar) const;
 	const bool operator<(Vector p_vector) const;
 	const bool operator>(Vector p_vector) const;
+	const Vector operator*(Vector p_vector) const;
 	Vector& operator+=(const Vector &p_rhs);
 	Vector& operator-=(const Vector &p_rhs);
 	bool operator==(const Vector &p_rhs) const;

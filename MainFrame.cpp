@@ -14,6 +14,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_RBUTTONDOWN()
+	ON_WM_HSCROLL()
+	ON_COMMAND(IDM_MENU_RESET,OnMenuReset)
 	ON_COMMAND(IDM_MENU_OPEN,OnMenuOpen)
 	ON_COMMAND(IDM_MENU_ADD,OnMenuAdd)
 	ON_COMMAND(IDM_MENU_SAVE,OnMenuSave)
@@ -26,18 +28,27 @@ CMainFrame::CMainFrame() {
 	memset(keys,0,sizeof(keys));
 	start=false;
 	follow=NULL;
+	scale=1;
 	MousePos=CPoint(0,0);
 
 	p1.SetEngine(&engine);
 	p2.SetEngine(&engine);
 
-	Create(NULL,"Planetoids",WS_OVERLAPPEDWINDOW,CRect(20,30,900,650));
+	Create(NULL,"Planetoids",WS_OVERLAPPEDWINDOW,CRect(20,20,900,700));
 	menu.LoadMenu(IDR_MENU);
 	SetMenu(&menu);
 
 	HINSTANCE hInst=AfxGetInstanceHandle();
 	HICON icon=LoadIcon(hInst,"icon");
-	SetIcon(icon,FALSE);
+	SetIcon(icon,TRUE);
+
+	zoom.Create(WS_CHILD |WS_VISIBLE |TBS_VERT
+		|TBS_AUTOTICKS |TBS_RIGHT,
+		CRect(CPoint(0,0),CSize(30,120)),
+		this, IDC_SLH_ZOOM);
+	zoom.SetRange(0,10);	zoom.SetTicFreq(1);
+	zoom.SetPos(0);
+	zoom.SetLineSize(1);	zoom.SetPageSize(1);
 
 	LoadSystem("system.txt");
 	objects = engine.getObjectsPointer();
@@ -47,6 +58,13 @@ CMainFrame::CMainFrame() {
 
 CMainFrame::~CMainFrame() {
 	KillTimer(UPDATE_TIMER);
+}
+
+void CMainFrame::OnMenuReset() {
+	engine.clear();
+	LoadSystem("system.txt");
+	follow=NULL;
+	adjustview=Vector(0,0);
 }
 
 void CMainFrame::OnMenuOpen() {
@@ -125,17 +143,17 @@ void CMainFrame::SaveSystem(string fn) {
 void CMainFrame::OnPaint() {
 	CPaintDC dc(this);
 
-	//dc.SetTextAlign(TA_CENTER);
+	dc.SetTextAlign(TA_CENTER);
 	dc.SetTextColor(WHITE_BRUSH);
 
 	CString str;
 	CRect window;
 	GetClientRect(&window);
-	int middle_x=window.right/2-adjustview.getX();
-	int middle_y=window.bottom/2-adjustview.getY();
+	int middle_x=window.right/2+adjustview.getX();
+	int middle_y=window.bottom/2+adjustview.getY();
 	if (follow != NULL) {
 		middle_x-=follow->getPosition().getX();
-		middle_y-=follow->getPosition().getY();
+		middle_y+=follow->getPosition().getY();
 	}
 
 	CBrush brush;
@@ -150,23 +168,28 @@ void CMainFrame::OnPaint() {
 	font.CreatePointFont(80,"Arial");
 	dc.SelectObject(font);
 
+	dc.MoveTo(middle_x-600,middle_y-600);
+	dc.LineTo(middle_x-600,middle_y+600);
+	dc.LineTo(middle_x+600,middle_y+600);
+	dc.LineTo(middle_x+600,middle_y-600);
+	dc.LineTo(middle_x-600,middle_y-600);
+
 	objects = engine.getObjectsPointer();
 	for (int i=0; i < objects->size(); i++) {
 		Object *planet=objects->at(i);
 		string name=planet->getName();
 		if (name != "Sun" && name != "Missile" && name != "Blackhole") {
 			int planet_x=planet->getPosition().getX();
-			int planet_y=planet->getPosition().getY();
+			int planet_y=-planet->getPosition().getY();
 			int radius=planet->getRadius();
 
-			//dc.TextOut(middle_x+planet_x-radius-10,middle_y+planet_y+radius+5,name.c_str());
-			dc.DrawText(name.c_str(), -1, CRect(middle_x+planet_x-30,middle_y+planet_y+radius+2,middle_x+planet_x+30,middle_y+planet_y+radius+100), DT_SINGLELINE|DT_CENTER);
+			dc.TextOut(middle_x+planet_x,middle_y+planet_y+radius+5,name.c_str());
 		}
 	}
 	for (i=0; i < objects->size(); i++) {
 		Object *planet=objects->at(i);
-		int planet_x=planet->getPosition().getX();
-		int planet_y=planet->getPosition().getY();
+		int planet_x=planet->getPosition().getX()/scale;
+		int planet_y=-planet->getPosition().getY()/scale;
 		int radius=planet->getRadius();
 
 		dc.SelectStockObject(BLACK_PEN);
@@ -191,9 +214,6 @@ void CMainFrame::OnPaint() {
 			dc.LineTo(CPoint(middle_x+middle_missile_x+6.32455532*cos((p->GetAngle()-18.4349488)*pi/180),	middle_y+middle_missile_y+6.32455532*sin((p->GetAngle()-18.4349488)*pi/180)));
 			dc.LineTo(CPoint(middle_x+middle_missile_x+2		*cos((p->GetAngle()-90)*pi/180),			middle_y+middle_missile_y+2*		sin((p->GetAngle()-90)*pi/180)));
 			dc.LineTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
-
-//			dc.MoveTo(CPoint(middle_x+planet_x,middle_y+planet_y));
-//			dc.LineTo(CPoint(middle_x+planet_x+(radius+7)*cos(p->GetAngle()*pi/180), middle_y+planet_y+(radius+7)*sin(p->GetAngle()*pi/180)));
 		}
 
 		if (!start && p1.GetPlanet() != planet && p2.GetPlanet() != planet) {
@@ -222,24 +242,49 @@ void CMainFrame::OnPaint() {
 			dc.SelectObject(sunBrush);
 		}
 
-		dc.Ellipse(CRect(CPoint(middle_x+planet_x-radius,middle_y+planet_y-radius),CSize(2*radius,2*radius)));
+		if (planet->getName()=="Missile"){
+			double angle;
+
+			if(planet->getVelocity().getX()<0){
+				angle = 180+(atan((-planet->getVelocity().getY())/(planet->getVelocity().getX()))*180/pi);
+			}
+			else{
+				angle = (atan((-planet->getVelocity().getY())/(planet->getVelocity().getX()))*180/pi);
+			}
+
+			dc.MoveTo(middle_x+planet_x,middle_y+planet_y);
+			dc.LineTo(middle_x+planet_x+sqrt(25)*cos((angle+90)*pi/180),                        middle_y+planet_y+sqrt(25)*                sin((angle+90)*pi/180));
+			dc.LineTo(middle_x+planet_x+sqrt(3*3+2*2)*cos((angle+33.69)*pi/180),        middle_y+planet_y+sqrt(3*3+2*2)*        sin((angle+33.69)*pi/180));
+			dc.LineTo(middle_x+planet_x+sqrt(9*9+2*2)*cos((angle+12.5288077)*pi/180),middle_y+planet_y+sqrt(9*9+2*2)*        sin((angle+12.5288077)*pi/180));
+			dc.LineTo(middle_x+planet_x+sqrt(144)*cos(angle*pi/180),                                middle_y+planet_y+sqrt(144)*                sin(angle*pi/180));
+			dc.LineTo(middle_x+planet_x+sqrt(9*9+2*2)*cos((angle-12.5288077)*pi/180),middle_y+planet_y+sqrt(9*9+2*2)*        sin((angle-12.5288077)*pi/180));
+			dc.LineTo(middle_x+planet_x+sqrt(3*3+2*2)*cos((angle-33.69)*pi/180),        middle_y+planet_y+sqrt(3*3+2*2)*        sin((angle-33.69)*pi/180));
+			dc.LineTo(middle_x+planet_x+sqrt(25)*cos((angle-90)*pi/180),                        middle_y+planet_y+sqrt(25)*                sin((angle-90)*pi/180));
+			dc.LineTo(middle_x+planet_x,middle_y+planet_y);                        
+		}
+		else{
+			dc.Ellipse(CRect(CPoint(middle_x+planet_x-radius,middle_y+planet_y-radius),CSize(2*radius,2*radius)));
+		}
 	}
 
 	if (!start) {
 		if (p1.GetPlanet() == NULL) {
-			dc.DrawText("Player 1 - Choose your planet", -1, CRect(0,10,window.right,100), DT_SINGLELINE|DT_CENTER);
+			dc.TextOut(window.right/2,10,"Player 1 - Choose your planet");
 		}
 		else if (p2.GetPlanet() == NULL) {
-			dc.DrawText("Player 2 - Choose your planet", -1, CRect(0,10,window.right,100), DT_SINGLELINE|DT_CENTER);
+			dc.TextOut(window.right/2,10,"Player 2 - Choose your planet");
 		}
 	}
 
+	dc.SetTextAlign(TA_LEFT);
 	str.Format("Player 1: %d", p1.GetMissiles());
-	dc.TextOut(30,5,str);
+	dc.TextOut(40,10,str);
 	str.Format("Player 2: %d", p2.GetMissiles());
-	dc.TextOut(30,20,str);
+	dc.TextOut(40,25,str);
 	str.Format("Num objects: %d", objects->size());
-	dc.TextOut(30,35,str);
+	dc.TextOut(40,40,str);
+	str.Format("Scale: %d", scale);
+	dc.TextOut(40,55,str);
 }
 
 void CMainFrame::OnTimer(UINT nIDEvent) {
@@ -279,6 +324,7 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 			adjustview+=Vector(0,-10);
 		}
 		if (keys['0']) {
+			follow=NULL;
 			adjustview=Vector(0,0);
 		}
 		for (int i=0; i < objects->size(); i++) {
@@ -313,18 +359,18 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 	if (!start) {
 		CRect window;
 		GetClientRect(&window);
-		int middle_x=window.right/2-adjustview.getX();
-		int middle_y=window.bottom/2-adjustview.getY();
+		int middle_x=window.right/2+adjustview.getX();
+		int middle_y=window.bottom/2+adjustview.getY();
 		if (follow != NULL) {
 			middle_x-=follow->getPosition().getX();
-			middle_y-=follow->getPosition().getY();
+			middle_y+=follow->getPosition().getY();
 		}
 
 		for (int i=0; i < objects->size(); i++) {
 			Object *planet=objects->at(i);
-			if (planet->getName() != "Sun") {
+			if (planet->getName() != "Sun" && planet->getName() != "Blackhole") {
 				int planet_x=planet->getPosition().getX();
-				int planet_y=planet->getPosition().getY();
+				int planet_y=-planet->getPosition().getY();
 				int radius=planet->getRadius();
 
 				CRect planetrect(middle_x+planet_x-radius,middle_y+planet_y-radius,
@@ -336,7 +382,7 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 					}
 					else if (p2.GetPlanet() == NULL && p1.GetPlanet() != planet) {
 						p2.SetPlanet(planet);
-						start=1;
+						start=true;
 					}
 					return;
 				}
@@ -348,16 +394,16 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 void CMainFrame::OnRButtonDown(UINT nFlags, CPoint pt) {
 	CRect window;
 	GetClientRect(&window);
-	int middle_x=window.right/2-adjustview.getX();
-	int middle_y=window.bottom/2-adjustview.getY();
+	int middle_x=window.right/2+adjustview.getX();
+	int middle_y=window.bottom/2+adjustview.getY();
 	if (follow != NULL) {
 		middle_x-=follow->getPosition().getX();
-		middle_y-=follow->getPosition().getY();
+		middle_y+=follow->getPosition().getY();
 	}
 	for (int i=0; i < objects->size(); i++) {
 		Object *planet=objects->at(i);
 		int planet_x=planet->getPosition().getX();
-		int planet_y=planet->getPosition().getY();
+		int planet_y=-planet->getPosition().getY();
 		int radius=planet->getRadius();
 
 		CRect planetrect(middle_x+planet_x-radius,middle_y+planet_y-radius,
@@ -365,7 +411,15 @@ void CMainFrame::OnRButtonDown(UINT nFlags, CPoint pt) {
 
 		if (planetrect.PtInRect(pt)) {
 			follow=planet;
+			adjustview=Vector(0,0);
 			return;
 		}
 	}
+}
+
+void CMainFrame::OnHScroll(UINT nSBCode, UINT nPos, CWnd *pSlider) {
+	CSliderCtrl *pSld;
+	pSld=(CSliderCtrl*)pSlider;
+	MessageBox("kaka","kaka");
+	scale=pSld->GetPos();
 }

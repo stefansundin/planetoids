@@ -111,11 +111,17 @@ void Physics::doPhysics()
 						m_objects->at(blackhole)->updateRadius(m_objects->at(blackhole)->getRadius()+0.5*m_objects->at(planet)->getRadius());
 						m_objects->at(blackhole)->updateMass(m_objects->at(blackhole)->getMass()+0.5*m_objects->at(planet)->getMass());
 						destroy.push_back(m_objects->at(planet));
-					}
-					else {
+					}*/
+					/*else {
 						double newRadius=(m_objects->at(i)->getRadius()+m_objects->at(j)->getRadius())/2;
 						m_objects->at(i)->updateRadius(newRadius);
 						m_objects->at(j)->updateRadius(newRadius);
+					}*/
+					/*else {
+						Vector vel1=m_objects->at(i)->getVelocity();
+						Vector vel2=m_objects->at(j)->getVelocity();
+						m_objects->at(i)->setVelocity(vel2);
+						m_objects->at(j)->setVelocity(vel1);
 					}*/
 					/*std::cout
 						<< "BOOM! " << m_objects->at(i)->getName()

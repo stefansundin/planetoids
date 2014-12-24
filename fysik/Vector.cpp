@@ -93,6 +93,11 @@ const bool Vector::operator>(Vector p_vector) const
 	}
 }
 
+const Vector Vector::operator*(Vector p_vector) const
+{
+	return Vector(m_x*p_vector.getX(),m_y*p_vector.getY());
+}
+
 Vector& Vector::operator+=(const Vector &p_rhs)
 {
 	m_x += p_rhs.m_x;
