@@ -1,5 +1,6 @@
 #include <afxwin.h>
 #include "fysik/Physics.h"
+#include "Player.h"
 #include <iostream>
 
 using namespace std;
@@ -8,9 +9,13 @@ using namespace std;
 
 class CMainFrame: public CFrameWnd {
 private:
-	int angle;
 	Physics engine;
 	vector<Object*> *objects;
+	Player p1;
+	Player p2;
+	CPoint MousePos;
+	bool start;
+	int angle;
 
 public:
 	CMainFrame();
@@ -19,6 +24,8 @@ public:
 	afx_msg void OnPaint();
 	afx_msg void OnChar(UINT nChar, UINT nRep, UINT nFlags);
 	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint pt);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint pt);
 	
 	DECLARE_MESSAGE_MAP();
 };

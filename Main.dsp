@@ -128,6 +128,14 @@ SOURCE=.\fysik\Physics.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Player.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Player.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\fysik\Vector.cpp
 # End Source File
 # Begin Source File

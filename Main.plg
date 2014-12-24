@@ -6,27 +6,42 @@
 --------------------Configuration: Main - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP1CB.tmp" with contents
+Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP3AA.tmp" with contents
 [
 /nologo /MDd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "_AFXDLL" /Fp"Debug/Main.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"C:\Stuff\School\Programmering C\MFC\Planetoids\Main.cpp"
 "C:\Stuff\School\Programmering C\MFC\Planetoids\MainFrame.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\MyWinApp.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\Player.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\fysik\millitime.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\fysik\Object.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\fysik\Physics.cpp"
+"C:\Stuff\School\Programmering C\MFC\Planetoids\fysik\Vector.cpp"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP1CB.tmp" 
-Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP1CC.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP3AA.tmp" 
+Creating temporary file "C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP3AB.tmp" with contents
 [
 /nologo /subsystem:windows /incremental:yes /pdb:"Debug/Main.pdb" /debug /machine:I386 /out:"Debug/Main.exe" /pdbtype:sept 
 ".\Debug\Main.obj"
 ".\Debug\MainFrame.obj"
-".\Debug\millitime.obj"
 ".\Debug\MyWinApp.obj"
+".\Debug\Player.obj"
+".\Debug\millitime.obj"
 ".\Debug\Object.obj"
 ".\Debug\Physics.obj"
 ".\Debug\Vector.obj"
 ]
-Creating command line "link.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP1CC.tmp"
+Creating command line "link.exe @C:\DOCUME~1\vi89stsu\LOKALA~1\Temp\RSP3AB.tmp"
 <h3>Output Window</h3>
 Compiling...
+Main.cpp
 MainFrame.cpp
+MyWinApp.cpp
+Player.cpp
+millitime.cpp
+Object.cpp
+Physics.cpp
+Vector.cpp
 Linking...
 
 
