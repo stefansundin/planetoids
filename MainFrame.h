@@ -16,16 +16,16 @@ private:
 	Player p2;
 	CPoint MousePos;
 	bool start;
+	char keys[255];
 	int angle;
 
 public:
 	CMainFrame();
 	~CMainFrame();
 
-	void Fire(Player &p);
-
 	afx_msg void OnPaint();
-	afx_msg void OnChar(UINT nChar, UINT nRep, UINT nFlags);
+	afx_msg void OnKeyDown(UINT nChar, UINT nRep, UINT nFlags);
+	afx_msg void OnKeyUp(UINT nChar, UINT nRep, UINT nFlags);
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint pt);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint pt);

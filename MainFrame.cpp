@@ -7,10 +7,13 @@
 #define IDC_BTN_NUM 200
 #define IDC_BTN_DEC 201
 
+const double pi=3.14159265358979323846;
+
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_PAINT()
 	ON_WM_TIMER()
-	ON_WM_CHAR()
+	ON_WM_KEYDOWN()
+	ON_WM_KEYUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
 END_MESSAGE_MAP()
@@ -18,8 +21,12 @@ END_MESSAGE_MAP()
 CMainFrame::CMainFrame() {
 	srand(time(NULL));
 
+	memset(keys,0,sizeof(keys));
 	start=false;
 	MousePos=CPoint(0,0);
+
+	p1.SetEngine(&engine);
+	p2.SetEngine(&engine);
 
 	engine.addObject(new Object(Vector(-50,0), Vector(0,10), 20, 1e13, "Sun"));
 	engine.addObject(new Object(Vector(50,0), Vector(0,-10), 20, 1e13, "Sun"));
@@ -46,8 +53,6 @@ void CMainFrame::OnPaint() {
 
 	dc.SetTextColor(WHITE_BRUSH);
 
-
-	const double pi=3.14159265358979323846;
 	CRect window;
 	GetClientRect(&window);
 	const int middle_x=window.right/2;
@@ -72,13 +77,13 @@ void CMainFrame::OnPaint() {
 		dc.SelectObject(brush);
 
 		Player *p;
-		if (p1.GetPlanet() == i) {
+		if (p1.GetPlanet() == planet) {
 			p=&p1;
 		}
-		if (p2.GetPlanet() == i) {
+		if (p2.GetPlanet() == planet) {
 			p=&p2;
 		}
-		if (p1.GetPlanet() == i || p2.GetPlanet() == i) {
+		if (p1.GetPlanet() == planet || p2.GetPlanet() == planet) {
 			int middle_missile_x = planet_x+radius*cos(p->GetAngle()*pi/180);
 			int middle_missile_y = planet_y+radius*sin(p->GetAngle()*pi/180);
 			dc.MoveTo(CPoint(middle_x+middle_missile_x, middle_y+middle_missile_y));
@@ -95,7 +100,7 @@ void CMainFrame::OnPaint() {
 //			dc.LineTo(CPoint(middle_x+planet_x+(radius+7)*cos(p->GetAngle()*pi/180), middle_y+planet_y+(radius+7)*sin(p->GetAngle()*pi/180)));
 		}
 
-		if (!start && p1.GetPlanet() != i && p2.GetPlanet() != i) {
+		if (!start && p1.GetPlanet() != planet && p2.GetPlanet() != planet) {
 			CRect planetrect(middle_x+planet_x-radius,middle_y+planet_y-radius,
 				middle_x+planet_x+radius,middle_y+planet_y+radius);
 			if (planetrect.PtInRect(MousePos)) {
@@ -117,10 +122,10 @@ void CMainFrame::OnPaint() {
 	}
 
 	if (!start) {
-		if (p1.GetPlanet() == -1) {
+		if (p1.GetPlanet() == NULL) {
 			dc.TextOut(middle_x-95,window.bottom-30,"Player 1 - Choose your planet");
 		}
-		else if (p2.GetPlanet() == -1) {
+		else if (p2.GetPlanet() == NULL) {
 			dc.TextOut(middle_x-95,window.bottom-30,"Player 2 - Choose your planet");
 		}
 	}
@@ -130,6 +135,8 @@ void CMainFrame::OnPaint() {
 	dc.TextOut(30,5,str);
 	str.Format("Player 2: %d", p2.GetMissiles());
 	dc.TextOut(30,20,str);
+	str.Format("Num objects: %d", objects->size());
+	dc.TextOut(30,35,str);
 }
 
 void CMainFrame::OnTimer(UINT nIDEvent) {
@@ -138,51 +145,35 @@ void CMainFrame::OnTimer(UINT nIDEvent) {
 	if (nIDEvent == UPDATE_TIMER) {
 		engine.doPhysics();
 		angle=(angle+1)%360;
+		if (keys['A']) {
+			p1.SetAngle(p1.GetAngle()-5);
+		}
+		if (keys['D']) {
+			p1.SetAngle(p1.GetAngle()+5);
+		}
+		if (keys['J']) {
+			p2.SetAngle(p2.GetAngle()-5);
+		}
+		if (keys['L']) {
+			p2.SetAngle(p2.GetAngle()+5);
+		}
+		if (keys['W']) {
+			p1.Fire();
+		}
+		if (keys['I']) {
+			p2.Fire();
+		}
 		Invalidate();
 	}
 	CWnd::OnTimer(nIDEvent);
 }
 
-
-void CMainFrame::Fire(Player &p)  {
-	if (p.GetPlanet() != -1 && p.GetMissiles() > 0) {
-		objects = engine.getObjectsPointer();
-		Object *planet=objects->at(p.GetPlanet());
-		engine.addObject(new Object(planet->getPosition(), planet->getVelocity()+Vector(0,20), 3, 10, "Missile"));
-		p.DecreaseMissile();
-	}
+void CMainFrame::OnKeyDown(UINT nChar, UINT nRep, UINT nFlags)  {
+	keys[nChar]=1;
 }
 
-void CMainFrame::OnChar(UINT nChar, UINT nRep, UINT nFlags)  {
-	switch(nChar) {
-	case 'a':
-		p1.SetAngle(p1.GetAngle()-3);
-		break;
-	case 'd':
-		p1.SetAngle(p1.GetAngle()+3);
-		break;
-	case 's':
-		Fire(p1);
-		break;
-	case 'x':
-		p1.SetAngle(0);
-		break;
-	case 'j':
-		p2.SetAngle(p2.GetAngle()-3);
-		break;
-	case 'l':
-		p2.SetAngle(p2.GetAngle()+3);
-		break;
-	case 'k':
-		Fire(p2);
-		break;
-	case ',':
-		p2.SetAngle(0);
-		break;
-	default:
-		break;
-	}
-	Invalidate();
+void CMainFrame::OnKeyUp(UINT nChar, UINT nRep, UINT nFlags)  {
+	keys[nChar]=0;
 }
 
 void CMainFrame::OnMouseMove(UINT nFlags, CPoint pt) {
@@ -207,11 +198,11 @@ void CMainFrame::OnLButtonDown(UINT nFlags, CPoint pt) {
 					middle_x+planet_x+radius,middle_y+planet_y+radius);
 
 				if (planetrect.PtInRect(pt)) {
-					if (p1.GetPlanet() == -1 && p2.GetPlanet() != i) {
-						p1.SetPlanet(i);
+					if (p1.GetPlanet() == NULL && p2.GetPlanet() != planet) {
+						p1.SetPlanet(planet);
 					}
-					else if (p2.GetPlanet() == -1 && p1.GetPlanet() != i) {
-						p2.SetPlanet(i);
+					else if (p2.GetPlanet() == NULL && p1.GetPlanet() != planet) {
+						p2.SetPlanet(planet);
 						start=1;
 					}
 					return;

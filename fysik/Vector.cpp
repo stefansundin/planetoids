@@ -71,6 +71,28 @@ const Vector Vector::operator/(double p_scalar) const
 	return temp;
 }
 
+const bool Vector::operator<(Vector p_vector) const
+{
+	if (m_x < p_vector.getX() || m_y < p_vector.getY())
+	{
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+const bool Vector::operator>(Vector p_vector) const
+{
+	if (m_x > p_vector.getX() || m_y > p_vector.getY())
+	{
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 Vector& Vector::operator+=(const Vector &p_rhs)
 {
 	m_x += p_rhs.m_x;
