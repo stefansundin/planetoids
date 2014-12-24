@@ -42,8 +42,8 @@ void Player::DecreaseMissile() {
 void Player::Fire() {
 	if (planet != NULL && missiles > 0 && GetTickCount() >= cooldown+2000) {
 		Vector pos(planet->getPosition()+Vector(
-			planet->getRadius()*cos(angle*pi/180*-1)+550000*cos(angle*pi/180*-1),
-			planet->getRadius()*sin(angle*pi/180*-1)+550000*sin(angle*pi/180*-1)));
+			planet->getRadius()*cos(angle*pi/180*-1)+(planet->getRadius()+5000000)*cos(angle*pi/180*-1),
+			planet->getRadius()*sin(angle*pi/180*-1)+(planet->getRadius()+5000000)*sin(angle*pi/180*-1)));
 		Vector vel(planet->getVelocity()+Vector(
 			30000*cos(angle*pi/180*-1),
 			30000*sin(angle*pi/180*-1)));

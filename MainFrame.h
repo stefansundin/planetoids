@@ -3,6 +3,7 @@
 #include <afxcmn.h>
 #include "fysik/Physics.h"
 #include "Player.h"
+#include "Animation.h"
 #include "resources.h"
 #include <iostream>
 
@@ -18,6 +19,7 @@ static Player p1;
 static Player p2;
 static int winner;
 static bool start;
+static vector<Animation> animations;
 
 class CMainFrame: public CFrameWnd {
 private:
